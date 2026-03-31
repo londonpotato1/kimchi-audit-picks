@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>정기실사 대비 헷징 분석 리포트 | 2026.03.31</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0a0f; color: #e0e0e0; font-family: -apple-system, 'Pretendard', sans-serif; padding: 24px; }
+  .container { max-width: 1400px; margin: 0 auto; }
+
+  /* Header */
+  .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; border-bottom: 2px solid #1a1a2e; padding-bottom: 20px; }
+  .header h1 { font-size: 28px; color: #fff; }
+  .header h1 span { color: #ff4757; }
+  .header-meta { text-align: right; color: #888; font-size: 13px; line-height: 1.6; }
+  .header-meta strong { color: #ffa502; }
+
+  /* Cards Grid */
+  .cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px; }
+  .card { background: #12121e; border-radius: 12px; padding: 20px; border: 1px solid #1e1e30; }
+  .card-label { font-size: 12px; color: #888; margin-bottom: 4px; }
+  .card-value { font-size: 28px; font-weight: 700; }
+  .card-value.green { color: #2ed573; }
+  .card-value.red { color: #ff4757; }
+  .card-value.yellow { color: #ffa502; }
+  .card-value.blue { color: #3498db; }
+  .card-sub { font-size: 12px; color: #666; margin-top: 4px; }
+
+  /* Section */
+  .section { margin-bottom: 32px; }
+  .section-title { font-size: 18px; font-weight: 700; margin-bottom: 16px; padding-left: 12px; border-left: 4px solid #ff4757; }
+  .section-title.green { border-left-color: #2ed573; }
+  .section-title.yellow { border-left-color: #ffa502; }
+  .section-title.blue { border-left-color: #3498db; }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; background: #12121e; border-radius: 12px; overflow: hidden; }
+  thead { background: #1a1a2e; }
+  th { padding: 12px 14px; font-size: 12px; font-weight: 600; color: #888; text-align: left; white-space: nowrap; }
+  th.right, td.right { text-align: right; }
+  th.center, td.center { text-align: center; }
+  td { padding: 12px 14px; font-size: 14px; border-top: 1px solid #1e1e30; white-space: nowrap; }
+  tr:hover { background: #1a1a28; }
+  .coin-name { font-weight: 700; color: #fff; font-size: 15px; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+  .badge-green { background: #0a3d2a; color: #2ed573; }
+  .badge-red { background: #3d0a0a; color: #ff4757; }
+  .badge-yellow { background: #3d2e0a; color: #ffa502; }
+  .badge-gray { background: #2a2a2a; color: #999; }
+  .positive { color: #2ed573; }
+  .negative { color: #ff4757; }
+  .neutral { color: #ffa502; }
+  .muted { color: #666; }
+
+  /* Rank Badge */
+  .rank { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; font-weight: 700; font-size: 13px; }
+  .rank-1 { background: #ffa502; color: #000; }
+  .rank-2 { background: #c0c0c0; color: #000; }
+  .rank-3 { background: #cd7f32; color: #000; }
+  .rank-4, .rank-5 { background: #2a2a3a; color: #888; }
+
+  /* Bar Chart */
+  .bar-container { display: flex; align-items: center; gap: 8px; }
+  .bar { height: 18px; border-radius: 4px; min-width: 2px; }
+  .bar-hold { background: linear-gradient(90deg, #ff4757, #ff6b81); }
+  .bar-trade { background: linear-gradient(90deg, #ffa502, #ffc048); }
+  .bar-label { font-size: 12px; color: #888; min-width: 36px; }
+
+  /* Strategy Box */
+  .strategy-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  .strategy-card { background: #12121e; border-radius: 12px; padding: 20px; border: 1px solid #1e1e30; }
+  .strategy-card.recommended { border-color: #2ed573; }
+  .strategy-card.caution { border-color: #ffa502; }
+  .strategy-card.avoid { border-color: #ff4757; }
+  .strategy-card h3 { font-size: 15px; margin-bottom: 8px; }
+  .strategy-card h3.green { color: #2ed573; }
+  .strategy-card h3.yellow { color: #ffa502; }
+  .strategy-card h3.red { color: #ff4757; }
+  .strategy-card ul { list-style: none; padding: 0; }
+  .strategy-card li { padding: 4px 0; font-size: 13px; color: #aaa; }
+  .strategy-card li strong { color: #e0e0e0; }
+
+  /* Footer */
+  .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #1e1e30; font-size: 12px; color: #555; text-align: center; }
+
+  /* Whale Gauge */
+  .whale-gauge { display: flex; gap: 4px; align-items: center; }
+  .gauge-block { width: 8px; height: 16px; border-radius: 2px; }
+  .gauge-fill { background: #ff4757; }
+  .gauge-empty { background: #1e1e30; }
+
+  @media (max-width: 900px) {
+    .cards { grid-template-columns: repeat(2, 1fr); }
+    .strategy-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <div>
+      <h1><span>정기실사 대비</span> 헷징 분석 리포트</h1>
+      <p style="color:#888; margin-top:4px; font-size:14px;">업비트/빗썸 입출금 정지 시 운전수 의심 코인 분석</p>
+    </div>
+    <div class="header-meta">
+      생성: <strong>2026.03.31 00:15 KST</strong><br>
+      분석 기간: <strong>2026.02.20 ~ 03.30 (38일)</strong><br>
+      데이터: <strong>338만 레코드</strong> (gap_history.db)
+    </div>
+  </div>
+
+  <!-- Summary Cards -->
+  <div class="cards">
+    <div class="card">
+      <div class="card-label">분석 코인 수</div>
+      <div class="card-value blue">8</div>
+      <div class="card-sub">빗썸 내부 유통량 확인 완료</div>
+    </div>
+    <div class="card">
+      <div class="card-label">양펀비 헷징 가능</div>
+      <div class="card-value green">1</div>
+      <div class="card-sub">IOTX (Bybit +0.01%)</div>
+    </div>
+    <div class="card">
+      <div class="card-label">최고 고래 집중도</div>
+      <div class="card-value red">70%</div>
+      <div class="card-sub">SENT 최상위 보유비중</div>
+    </div>
+    <div class="card">
+      <div class="card-label">최저 MC</div>
+      <div class="card-value yellow">$3M</div>
+      <div class="card-sub">HOOK (운전 최용이)</div>
+    </div>
+  </div>
+
+  <!-- Main Table: Bithumb Internal Data -->
+  <div class="section">
+    <div class="section-title">빗썸 내부 유통량 + 운전 위험도</div>
+    <table>
+      <thead>
+        <tr>
+          <th>코인</th>
+          <th class="right">내부 유통량</th>
+          <th class="right">내부 가치</th>
+          <th class="right">보유자</th>
+          <th class="right">거래액(24h)</th>
+          <th class="right">순입금(24h)</th>
+          <th class="center">고래 보유</th>
+          <th class="center">고래 거래</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="coin-name">STEEM</span></td>
+          <td class="right">25,586,871</td>
+          <td class="right">22.7억</td>
+          <td class="right">54,549명</td>
+          <td class="right">3.2억</td>
+          <td class="right positive">+325만</td>
+          <td class="center"><span class="badge badge-green">14%</span></td>
+          <td class="center"><span class="badge badge-yellow">44%</span></td>
+        </tr>
+        <tr>
+          <td><span class="coin-name">HOOK</span></td>
+          <td class="right">107,306,305</td>
+          <td class="right">15.7억</td>
+          <td class="right">9,965명</td>
+          <td class="right">13.7억</td>
+          <td class="right positive">+1.6억</td>
+          <td class="center"><span class="badge badge-green">17%</span></td>
+          <td class="center"><span class="badge badge-green">21%</span></td>
+        </tr>
+        <tr>
+          <td><span class="coin-name">SENT</span></td>
+          <td class="right">99,104,282</td>
+          <td class="right">28.6억</td>
+          <td class="right">10,936명</td>
+          <td class="right">23.6억</td>
+          <td class="right positive">+8,186만</td>
+          <td class="center"><span class="badge badge-red">70%</span></td>
+          <td class="center"><span class="badge badge-red">52%</span></td>
+        </tr>
+        <tr>
+          <td><span class="coin-name">IOTX</span></td>
+          <td class="right">199,840,029</td>
+          <td class="right">14.3억</td>
+          <td class="right">12,474명</td>
+          <td class="right">1.3억</td>
+          <td class="right negative">-730만</td>
+          <td class="center"><span class="badge badge-yellow">33%</span></td>
+          <td class="center"><span class="badge badge-red">56%</span></td>
+        </tr>
+        <tr>
+          <td><span class="coin-name">ONT</span></td>
+          <td class="right">33,809,136</td>
+          <td class="right">38.2억</td>
+          <td class="right">21,960명</td>
+          <td class="right">84.8억</td>
+          <td class="right negative">-1.5억</td>
+          <td class="center"><span class="badge badge-yellow">26%</span></td>
+          <td class="center"><span class="badge badge-yellow">38%</span></td>
+        </tr>
+        <tr>
+          <td><span class="coin-name">POLYX</span></td>
+          <td class="right">26,744,522</td>
+          <td class="right">18.6억</td>
+          <td class="right">3,143명</td>
+          <td class="right">1.6억</td>
+          <td class="right positive">+1,171만</td>
+          <td class="center"><span class="badge badge-yellow">23%</span></td>
+          <td class="center"><span class="badge badge-yellow">47%</span></td>
+        </tr>
+        <tr>
+          <td><span class="coin-name">BARD</span></td>
+          <td class="right">3,307,726</td>
+          <td class="right">18.0억</td>
+          <td class="right">5,680명</td>
+          <td class="right">13억</td>
+          <td class="right negative">-1.1억</td>
+          <td class="center"><span class="badge badge-yellow">23%</span></td>
+          <td class="center"><span class="badge badge-red">52%</span></td>
+        </tr>
+        <tr>
+          <td><span class="coin-name">CFG</span></td>
+          <td class="right">5,466,458</td>
+          <td class="right">14.2억</td>
+          <td class="right">2,268명</td>
+          <td class="right">15.5억</td>
+          <td class="right negative">-4,819만</td>
+          <td class="center"><span class="badge badge-yellow">32%</span></td>
+          <td class="center"><span class="badge badge-yellow">46%</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Gap History + Funding -->
+  <div class="section">
+    <div class="section-title green">38일간 갭 이력 + 펀딩비</div>
+    <table>
+      <thead>
+        <tr>
+          <th>코인</th>
+          <th class="right">갭 발생 일수</th>
+          <th class="right">평균 갭</th>
+          <th class="right">최대 갭</th>
+          <th class="center">Bybit 펀딩비</th>
+          <th class="center">Binance 펀딩비</th>
+          <th class="center">펀딩비 판정</th>
+          <th class="right">MC</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="coin-name">STEEM</span></td>
+          <td class="right">14일</td>
+          <td class="right neutral">2.8%</td>
+          <td class="right">7.7%</td>
+          <td class="center negative">-0.063%</td>
+          <td class="center negative">-0.076%</td>
+          <td class="center"><span class="badge badge-red">음펀비</span></td>
+          <td class="right">$32M</td>
+        </tr>
+        <tr>
+          <td><span class="coin-name">HOOK</span></td>
+          <td class="right">10일</td>
+          <td class="right neutral">3.5%</td>
+          <td class="right">9.4%</td>
+          <td class="center negative">-0.808%</td>
+          <td class="center muted">0.000%</td>
+          <td class="center"><span class="badge badge-yellow">혼재</span></td>
+          <td class="right">$3M</td>
+        </tr>
+        <tr>
+          <td><span class="coin-name">SENT</span></td>
+          <td class="right">7일</td>
+          <td class="right neutral">4.2%</td>
+          <td class="right">34.7%</td>
+          <td class="center positive">+0.001%</td>
+          <td class="center negative">-0.076%</td>
+          <td class="center"><span class="badge badge-yellow">혼재</span></td>
+          <td class="right">$5M</td>
+        </tr>
+        <tr>
+          <td><span class="coin-name">IOTX</span></td>
+          <td class="right">10일</td>
+          <td class="right positive">9.5%</td>
+          <td class="right">22.4%</td>
+          <td class="center positive">+0.010%</td>
+          <td class="center positive">+0.010%</td>
+          <td class="center"><span class="badge badge-green">양펀비</span></td>
+          <td class="right">$45M</td>
+        </tr>
+        <tr>
+          <td><span class="coin-name">ONT</span></td>
+          <td class="right">8일</td>
+          <td class="right neutral">4.4%</td>
+          <td class="right">17.5%</td>
+          <td class="center negative">-0.038%</td>
+          <td class="center negative">-0.065%</td>
+          <td class="center"><span class="badge badge-red">음펀비</span></td>
+          <td class="right">$68M</td>
+        </tr>
+        <tr>
+          <td><span class="coin-name">POLYX</span></td>
+          <td class="right">9일</td>
+          <td class="right neutral">4.4%</td>
+          <td class="right">12.0%</td>
+          <td class="center negative">-0.004%</td>
+          <td class="center negative">-0.019%</td>
+          <td class="center"><span class="badge badge-gray">미미</span></td>
+          <td class="right">$58M</td>
+        </tr>
+        <tr>
+          <td><span class="coin-name">BARD</span></td>
+          <td class="right">18일</td>
+          <td class="right neutral">4.1%</td>
+          <td class="right">33.4%</td>
+          <td class="center negative">-0.177%</td>
+          <td class="center negative">-0.167%</td>
+          <td class="center"><span class="badge badge-red">음펀비</span></td>
+          <td class="right muted">불명</td>
+        </tr>
+        <tr>
+          <td><span class="coin-name">CFG</span></td>
+          <td class="right">18일</td>
+          <td class="right neutral">4.0%</td>
+          <td class="right">26.8%</td>
+          <td class="center negative">-0.187%</td>
+          <td class="center negative">-0.284%</td>
+          <td class="center"><span class="badge badge-red">음펀비</span></td>
+          <td class="right muted">불명</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Final Ranking -->
+  <div class="section">
+    <div class="section-title yellow">헷징 진입 우선순위</div>
+    <table>
+      <thead>
+        <tr>
+          <th class="center">순위</th>
+          <th>코인</th>
+          <th>근거</th>
+          <th class="center">펀딩비</th>
+          <th class="center">운전 용이도</th>
+          <th class="center">판정</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="center"><span class="rank rank-1">1</span></td>
+          <td><span class="coin-name">IOTX</span></td>
+          <td>양펀비 +0.01%, 평균갭 9.5%, 고래거래 56%, MC $45M</td>
+          <td class="center"><span class="badge badge-green">양</span></td>
+          <td class="center"><span class="badge badge-yellow">보통</span></td>
+          <td class="center"><span class="badge badge-green">강력추천</span></td>
+        </tr>
+        <tr>
+          <td class="center"><span class="rank rank-2">2</span></td>
+          <td><span class="coin-name">HOOK</span></td>
+          <td>MC $3M 극소, 순입금 +1.6억 유입, 갭 10일 반복, 보유자 9,965명</td>
+          <td class="center"><span class="badge badge-yellow">혼재</span></td>
+          <td class="center"><span class="badge badge-red">극쉬움</span></td>
+          <td class="center"><span class="badge badge-green">추천</span></td>
+        </tr>
+        <tr>
+          <td class="center"><span class="rank rank-3">3</span></td>
+          <td><span class="coin-name">SENT</span></td>
+          <td>고래 70% 독점, MC $5M, 순입금 +8,186만 물량 축적</td>
+          <td class="center"><span class="badge badge-yellow">혼재</span></td>
+          <td class="center"><span class="badge badge-red">극쉬움</span></td>
+          <td class="center"><span class="badge badge-green">추천</span></td>
+        </tr>
+        <tr>
+          <td class="center"><span class="rank rank-4">4</span></td>
+          <td><span class="coin-name">POLYX</span></td>
+          <td>보유자 3,143명 최소, 내부 18.6억, 음펀비 -0.02%로 미미</td>
+          <td class="center"><span class="badge badge-gray">미미</span></td>
+          <td class="center"><span class="badge badge-yellow">쉬움</span></td>
+          <td class="center"><span class="badge badge-yellow">조건부</span></td>
+        </tr>
+        <tr>
+          <td class="center"><span class="rank rank-5">5</span></td>
+          <td><span class="coin-name">ONT</span></td>
+          <td>내부가치 38.2억 최대, 업비트 708억 물량, 갭 4.4% 안정</td>
+          <td class="center"><span class="badge badge-red">음</span></td>
+          <td class="center"><span class="badge badge-gray">보통</span></td>
+          <td class="center"><span class="badge badge-yellow">조건부</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Strategy -->
+  <div class="section">
+    <div class="section-title blue">전략 가이드</div>
+    <div class="strategy-grid">
+      <div class="strategy-card recommended">
+        <h3 class="green">진입 전략 (현물매수 + 선물숏)</h3>
+        <ul>
+          <li><strong>타이밍:</strong> 실사 시작 전 국내 거래소로 현물 이체 완료</li>
+          <li><strong>헷징:</strong> 해외 거래소에서 동일 수량 선물 숏</li>
+          <li><strong>목표:</strong> 실사 중 국내 펌핑 시 국내 현물 매도 + 선물 숏 청산</li>
+          <li><strong>갭 목표:</strong> 평균갭 기준 3~5% 수익</li>
+        </ul>
+      </div>
+      <div class="strategy-card caution">
+        <h3 class="yellow">주의사항</h3>
+        <ul>
+          <li><strong>음펀비 코인:</strong> BARD(-0.17%), CFG(-0.24%)는 8시간마다 펀비 출혈</li>
+          <li><strong>실사 기간:</strong> 보통 1~3일 — 음펀비 코인은 하루 0.5%+ 비용</li>
+          <li><strong>유동성:</strong> MC $3~5M 코인은 슬리피지 주의</li>
+          <li><strong>입출금:</strong> 실사 전 이체 완료 필수 (실사 시작되면 이체 불가)</li>
+        </ul>
+      </div>
+      <div class="strategy-card avoid">
+        <h3 class="red">비추천 (펀비 출혈 > 갭 수익)</h3>
+        <ul>
+          <li><strong>BARD:</strong> 18일 반복이지만 하루 펀비 0.5%+ (평균갭 4.1%이면 8일이면 원금 회복 불가)</li>
+          <li><strong>CFG:</strong> 보유자 2,268명으로 운전 쉽지만 하루 펀비 0.7%+ 출혈</li>
+          <li><strong>STEEM:</strong> 갭 2.8%로 낮고 보유자 54,549명으로 운전 어려움</li>
+        </ul>
+      </div>
+      <div class="strategy-card recommended">
+        <h3 class="green">이상적 시나리오</h3>
+        <ul>
+          <li><strong>IOTX:</strong> 양펀비로 숏 유지비 0원 + 평균 9.5% 갭 = 순수익</li>
+          <li><strong>HOOK:</strong> MC $3M + 순입금 유입 = 실사 시 폭발적 펌핑 가능</li>
+          <li><strong>SENT:</strong> 고래 70% 독점 = 의도적 펌핑 확률 극대</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <p>본 리포트는 과거 38일간 갭 데이터 + 빗썸 내부 유통량 + 실시간 펀딩비를 기반으로 생성되었습니다.</p>
+    <p>투자 판단은 본인 책임이며, 시장 상황에 따라 결과가 달라질 수 있습니다.</p>
+    <p style="margin-top:8px; color:#333;">Generated by Claude Code | 감지봇_v2 gap_history.db (338만 records, 12GB)</p>
+  </div>
+
+</div>
+</body>
+</html>

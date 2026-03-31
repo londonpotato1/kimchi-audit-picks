@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>정기실사 헷징 분석 v2 | 451코인 x 38일 갭 | 2026.03.31</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#0a0a0f; color:#e0e0e0; font-family:-apple-system,'Pretendard',sans-serif; padding:24px; }
+  .container { max-width:1500px; margin:0 auto; }
+  .header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:28px; border-bottom:2px solid #1a1a2e; padding-bottom:20px; }
+  .header h1 { font-size:26px; color:#fff; } .header h1 span { color:#ff4757; }
+  .header-meta { text-align:right; color:#888; font-size:12px; line-height:1.7; } .header-meta strong { color:#ffa502; }
+  .cards { display:grid; grid-template-columns:repeat(5,1fr); gap:14px; margin-bottom:28px; }
+  .card { background:#12121e; border-radius:10px; padding:16px; border:1px solid #1e1e30; }
+  .card-label { font-size:11px; color:#888; margin-bottom:2px; }
+  .card-value { font-size:24px; font-weight:700; }
+  .card-value.green { color:#2ed573; } .card-value.red { color:#ff4757; }
+  .card-value.yellow { color:#ffa502; } .card-value.blue { color:#3498db; } .card-value.purple { color:#a55eea; }
+  .card-sub { font-size:11px; color:#555; margin-top:2px; }
+  .section { margin-bottom:28px; }
+  .section-title { font-size:17px; font-weight:700; margin-bottom:14px; padding-left:12px; border-left:4px solid #ff4757; }
+  .section-title.green { border-left-color:#2ed573; } .section-title.blue { border-left-color:#3498db; }
+  table { width:100%; border-collapse:collapse; background:#12121e; border-radius:10px; overflow:hidden; font-size:13px; }
+  thead { background:#1a1a2e; }
+  th { padding:10px 12px; font-size:11px; font-weight:600; color:#888; text-align:left; white-space:nowrap; }
+  th.right,td.right { text-align:right; } th.center,td.center { text-align:center; }
+  td { padding:10px 12px; border-top:1px solid #1e1e30; white-space:nowrap; }
+  tr:hover { background:#1a1a28; }
+  .coin-name { font-weight:700; color:#fff; font-size:14px; }
+  .badge { display:inline-block; padding:2px 7px; border-radius:4px; font-size:11px; font-weight:600; }
+  .badge-green { background:#0a3d2a; color:#2ed573; }
+  .badge-red { background:#3d0a0a; color:#ff4757; }
+  .badge-yellow { background:#3d2e0a; color:#ffa502; }
+  .positive { color:#2ed573; } .negative { color:#ff4757; } .neutral { color:#ffa502; }
+  .rank { display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:50%; font-weight:700; font-size:12px; }
+  .rank-1 { background:#ffa502; color:#000; } .rank-2 { background:#c0c0c0; color:#000; }
+  .rank-3 { background:#cd7f32; color:#000; } .rank-n { background:#2a2a3a; color:#888; }
+  .score-hot { background:#ff4757; color:#fff; padding:3px 10px; border-radius:12px; font-weight:700; font-size:14px; }
+  .score-warm { background:#ffa502; color:#000; padding:3px 10px; border-radius:12px; font-weight:700; font-size:14px; }
+  .score-mild { background:#2a2a3a; color:#aaa; padding:3px 10px; border-radius:12px; font-weight:600; font-size:14px; }
+  .legend { display:flex; gap:16px; margin-bottom:14px; font-size:12px; color:#888; }
+  .legend span { display:inline-flex; align-items:center; gap:4px; }
+  .legend .dot { width:10px; height:10px; border-radius:50%; display:inline-block; }
+  .strategy-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
+  .strategy-card { background:#12121e; border-radius:10px; padding:18px; border:1px solid #1e1e30; }
+  .strategy-card.green { border-color:#2ed573; } .strategy-card.yellow { border-color:#ffa502; } .strategy-card.red { border-color:#ff4757; }
+  .strategy-card h3 { font-size:14px; margin-bottom:8px; }
+  .strategy-card h3.green { color:#2ed573; } .strategy-card h3.yellow { color:#ffa502; } .strategy-card h3.red { color:#ff4757; }
+  .strategy-card ul { list-style:none; padding:0; } .strategy-card li { padding:3px 0; font-size:12px; color:#aaa; }
+  .strategy-card li strong { color:#e0e0e0; }
+  .footer { margin-top:32px; padding-top:16px; border-top:1px solid #1e1e30; font-size:11px; color:#444; text-align:center; }
+  .methodology { background:#12121e; border-radius:10px; padding:18px; border:1px solid #1e1e30; margin-bottom:28px; font-size:12px; color:#888; }
+  .methodology h3 { color:#aaa; margin-bottom:8px; font-size:13px; }
+  .methodology code { background:#1a1a2e; padding:1px 5px; border-radius:3px; color:#ffa502; }
+  @media(max-width:900px) { .cards { grid-template-columns:repeat(2,1fr); } .strategy-grid { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div>
+      <h1><span>정기실사 대비</span> 헷징 분석 리포트 v2</h1>
+      <p style="color:#888; margin-top:4px; font-size:13px;">빗썸 451코인 내부유통량 x 38일 갭이력 교차분석 — 운전수 의심 코인 Top 30</p>
+    </div>
+    <div class="header-meta">
+      생성: <strong>2026.03.31 00:40 KST</strong><br>
+      갭 분석: <strong>2026.02.20 ~ 03.30 (38일, 338만 레코드)</strong><br>
+      빗썸 데이터: <strong>451코인 내부유통량/보유자/고래비중</strong>
+    </div>
+  </div>
+
+  <div class="cards">
+    <div class="card"><div class="card-label">분석 코인</div><div class="card-value blue">451</div><div class="card-sub">빗썸 전체 KRW 마켓</div></div>
+    <div class="card"><div class="card-label">갭 발생 코인</div><div class="card-value yellow">147</div><div class="card-sub">2%+ 갭 3일 이상 발생</div></div>
+    <div class="card"><div class="card-label">운전 위험 (55+)</div><div class="card-value red">10</div><div class="card-sub">고위험 코인</div></div>
+    <div class="card"><div class="card-label">최고 위험 점수</div><div class="card-value red">63</div><div class="card-sub">CFG</div></div>
+    <div class="card"><div class="card-label">최다 갭 일수</div><div class="card-value purple">31일</div><div class="card-sub">NOM</div></div>
+  </div>
+
+  <div class="methodology">
+    <h3>운전 위험 점수 산출 방식</h3>
+    <code>갭일수</code>(최대20) + <code>보유자수</code>(소수일수록 높음, 최대15) + <code>고래보유비중</code>(높을수록, 최대15) + <code>고래거래비중</code>(높을수록, 최대10) + <code>내부가치</code>(낮을수록, 최대10) + <code>평균갭</code>(높을수록, 최대10) = <strong>최대 80점</strong>
+  </div>
+
+  <div class="section">
+    <div class="section-title">운전 위험 점수 Top 30</div>
+    <div class="legend">
+      <span>고래보유: <span class="dot" style="background:#ff4757"></span> 40%+ <span class="dot" style="background:#ffa502"></span> 25~39% <span class="dot" style="background:#2ed573"></span> ~24%</span>
+      <span>|</span>
+      <span>점수: <span class="score-hot" style="font-size:10px;padding:1px 6px;">55+</span> 고위험 <span class="score-warm" style="font-size:10px;padding:1px 6px;">50~54</span> 주의 <span class="score-mild" style="font-size:10px;padding:1px 6px;">~49</span> 관찰</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th class="center">#</th><th>코인</th><th class="center">위험점수</th>
+          <th class="right">갭일수</th><th class="right">평균갭</th><th class="right">최대갭</th>
+          <th class="right">내부유통량</th><th class="right">내부가치</th><th class="right">보유자</th>
+          <th class="center">고래보유</th><th class="center">고래거래</th><th class="right">순입금</th>
+        </tr>
+      </thead>
+      <tbody>
+<tr>
+      <td class="center"><span class="rank rank-1">1</span></td>
+      <td><span class="coin-name">CFG</span></td>
+      <td class="center"><span class="score-hot">63</span></td>
+      <td class="right">18일</td>
+      <td class="right neutral">4.0%</td>
+      <td class="right">26.8%</td>
+      <td class="right">5,466,458</td>
+      <td class="right">14억</td>
+      <td class="right">2,270명</td>
+      <td class="center"><span class="badge badge-yellow">32%</span></td>
+      <td class="center"><span class="badge badge-yellow">45%</span></td>
+      <td class="right negative">-202,210</td>
+    </tr>
+<tr>
+      <td class="center"><span class="rank rank-2">2</span></td>
+      <td><span class="coin-name">ZORA</span></td>
+      <td class="center"><span class="score-hot">61</span></td>
+      <td class="right">6일</td>
+      <td class="right neutral">3.7%</td>
+      <td class="right">22.7%</td>
+      <td class="right">36,849,001</td>
+      <td class="right">8억</td>
+      <td class="right">3,564명</td>
+      <td class="center"><span class="badge badge-red">52%</span></td>
+      <td class="center"><span class="badge badge-red">79%</span></td>
+      <td class="right positive">+2,874,143</td>
+    </tr>
+<tr>
+      <td class="center"><span class="rank rank-3">3</span></td>
+      <td><span class="coin-name">EDGE</span></td>
+      <td class="center"><span class="score-hot">60</span></td>
+      <td class="right">5일</td>
+      <td class="right neutral">5.0%</td>
+      <td class="right">18.7%</td>
+      <td class="right">8,027,092</td>
+      <td class="right">14억</td>
+      <td class="right">2,158명</td>
+      <td class="center"><span class="badge badge-red">48%</span></td>
+      <td class="center"><span class="badge badge-red">65%</span></td>
+      <td class="right positive">+243,937</td>
+    </tr>
+<tr>
+      <td class="center"><span class="rank rank-n">4</span></td>
+      <td><span class="coin-name">BARD</span></td>
+      <td class="center"><span class="score-hot">58</span></td>
+      <td class="right">18일</td>
+      <td class="right neutral">4.1%</td>
+      <td class="right">33.4%</td>
+      <td class="right">3,307,726</td>
+      <td class="right">18억</td>
+      <td class="right">5,682명</td>
+      <td class="center"><span class="badge badge-green">23%</span></td>
+      <td class="center"><span class="badge badge-yellow">52%</span></td>
+      <td class="right negative">-213,706</td>
+    </tr>
+<tr>
+      <td class="center"><span class="rank rank-n">5</span></td>
+      <td><span class="coin-name">AZTEC</span></td>
+      <td class="center"><span class="score-hot">58</span></td>
+      <td class="right">8일</td>
+      <td class="right neutral">3.2%</td>
+      <td class="right">7.5%</td>
+      <td class="right">34,139,223</td>
+      <td class="right">10억</td>
+      <td class="right">2,838명</td>
+      <td class="center"><span class="badge badge-yellow">35%</span></td>
+      <td class="center"><span class="badge badge-red">67%</span></td>
+      <td class="right negative">-198,422</td>
+    </tr>
+<tr>
+      <td class="center"><span class="rank rank-n">6</span></td>
+      <td><span class="coin-name">MANTRA</span></td>
+      <td class="center"><span class="score-hot">58</span></td>
+      <td class="right">8일</td>
+      <td class="right neutral">3.8%</td>
+      <td class="right">41.4%</td>
+      <td class="right">88,172,562</td>
+      <td class="right">15억</td>
+      <td class="right">2,819명</td>
+      <td class="center"><span class="badge badge-yellow">39%</span></td>
+      <td class="center"><span class="badge badge-red">80%</span></td>
+      <td class="right negative">-1,120,550</td>
+    </tr>
+<tr>
+      <td class="center"><span class="rank rank-n">7</span></td>
+      <td><span class="coin-name">IOTX</span></td>
+      <td class="center"><span class="score-hot">55</span></td>
+      <td class="right">10일</td>
+      <td class="right neutral">9.5%</td>
+      <td class="right">22.4%</td>
+      <td class="right">199,840,029</td>
+      <td class="right">14억</td>
+      <td class="right">12,474명</td>
+      <td class="center"><span class="badge badge-yellow">33%</span></td>
+      <td class="center"><span class="badge badge-red">56%</span></td>
+      <td class="right negative">-1,023,375</td>
+    </tr>
+<tr>
+      <td class="center"><span class="rank rank-n">8</span></td>
+      <td><span class="coin-name">ACX</span></td>
+      <td class="center"><span class="score-hot">55</span></td>
+      <td class="right">5일</td>
+      <td class="right neutral">4.9%</td>
+      <td class="right">16.7%</td>
+      <td class="right">13,556,689</td>
+      <td class="right">9억</td>
+      <td class="right">3,809명</td>
+      <td class="center"><span class="badge badge-red">45%</span></td>
+      <td class="center"><span class="badge badge-red">57%</span></td>
+      <td class="right negative">-271,551</td>
+    </tr>
+<tr>
+      <td class="center"><span class="rank rank-n">9</span></td>
+      <td><span class="coin-name">KAVA</span></td>
+      <td class="center"><span class="score-hot">55</span></td>
+      <td class="right">5일</td>
+      <td class="right neutral">5.1%</td>
+      <td class="right">34.4%</td>
+      <td class="right">12,207,529</td>
+      <td class="right">10억</td>
+      <td class="right">2,854명</td>
+      <td class="center"><span class="badge badge-yellow">28%</span></td>
+      <td class="center"><span class="badge badge-red">62%</span></td>
+      <td class="right negative">-111,775</td>
+    </tr>
+<tr>
+      <td class="center"><span class="rank rank-n">10</span></td>
+      <td><span class="coin-name">NIL</span></td>
+      <td class="center"><span class="score-hot">55</span></td>
+      <td class="right">5일</td>
+      <td class="right neutral">3.7%</td>
+      <td class="right">6.2%</td>
+      <td class="right">24,391,639</td>
+      <td class="right">13억</td>
+      <td class="right">2,934명</td>
+      <td class="center"><span class="badge badge-red">41%</span></td>
+      <td class="center"><span class="badge badge-red">64%</span></td>
+      <td class="right positive">+363,728</td>
+    </tr>
+<tr>
+      <td class="center"><span class="rank rank-n">11</span></td>
+      <td><span class="coin-name">ESP</span></td>
+      <td class="center"><span class="score-warm">54</span></td>
+      <td class="right">4일</td>
+      <td class="right neutral">4.0%</td>
+      <td class="right">13.3%</td>
+      <td class="right">7,822,845</td>
+      <td class="right">9억</td>
+      <td class="right">1,162명</td>
+      <td class="center"><span class="badge badge-red">41%</span></td>
+      <td class="center"><span class="badge badge-red">59%</span></td>
+      <td class="right positive">+119,241</td>
+    </tr>
+<tr>
+      <td class="center"><span class="rank rank-n">12</span></td>
+      <td><span class="coin-name">ORCA</span></td>
+      <td class="center"><span class="score-warm">54</span></td>
+      <td class="right">4일</td>
+      <td class="right neutral">4.2%</td>
+      <td class="right">9.9%</td>
+      <td class="right">512,387</td>
+      <td class="right">7억</td>
+      <td class="right">1,528명</td>
+      <td class="center"><span class="badge badge-yellow">39%</span></td>
+      <td class="center"><span class="badge badge-red">89%</span></td>
+      <td class="right negative">-5,218</td>
+    </tr>
+<tr>
+      <td class="center"><span class="rank rank-n">13</span></td>
+      <td><span class="coin-name">SAHARA</span></td>
+      <td class="center"><span class="score-warm">53</span></td>
+      <td class="right">18일</td>
+      <td class="right neutral">3.9%</td>
+      <td class="right">10.4%</td>
+      <td class="right">107,355,826</td>
+      <td class="right">39억</td>
+      <td class="right">10,354명</td>
+      <td class="center"><span class="badge badge-yellow">31%</span></td>
+      <td class="center"><span class="badge badge-yellow">51%</span></td>
+      <td class="right negative">-1,632,685</td>
+    </tr>
+<tr>
+      <td class="center"><span class="rank rank-n">14</span></td>
+      <td><span class="coin-name">SKR</span></td>
+      <td class="center"><span class="score-warm">53</span></td>
+      <td class="right">8일</td>
+      <td class="right neutral">3.9%</td>
+      <td class="right">8.9%</td>
+      <td class="right">67,444,226</td>
+      <td class="right">19억</td>
+      <td class="right">2,379명</td>
+      <td class="center"><span class="badge badge-yellow">30%</span></td>
+      <td class="center"><span class="badge badge-yellow">49%</span></td>
+      <td class="right positive">+7,193,840</td>
+    </tr>
+<tr>
+      <td class="center"><span class="rank rank-n">15</span></td>
+      <td><span class="coin-name">BIRB</span></td>
+      <td class="center"><span class="score-warm">53</span></td>
+      <td class="right">3일</td>
+      <td class="right neutral">3.2%</td>
+      <td class="right">7.3%</td>
+      <td class="right">4,291,507</td>
+      <td class="right">9억</td>
+      <td class="right">974명</td>
+      <td class="center"><span class="badge badge-yellow">39%</span></td>
+      <td class="center"><span class="badge badge-red">64%</span></td>
+      <td class="right negative">-68,274</td>
+    </tr>
+<tr>
+      <td class="center"><span class="rank rank-n">16</span></td>
+      <td><span class="coin-name">FLUID</span></td>
+      <td class="center"><span class="score-warm">53</span></td>
+      <td class="right">3일</td>
+      <td class="right neutral">3.2%</td>
+      <td class="right">4.1%</td>
+      <td class="right">118,890</td>
+      <td class="right">3억</td>
+      <td class="right">3,273명</td>
+      <td class="center"><span class="badge badge-yellow">37%</span></td>
+      <td class="center"><span class="badge badge-red">69%</span></td>
+      <td class="right negative">-3,703</td>
+    </tr>
+<tr>
+      <td class="center"><span class="rank rank-n">17</span></td>
+      <td><span class="coin-name">GTC</span></td>
+      <td class="center"><span class="score-warm">53</span></td>
+      <td class="right">3일</td>
+      <td class="right neutral">3.2%</td>
+      <td class="right">4.8%</td>
+      <td class="right">10,073,370</td>
+      <td class="right">11억</td>
+      <td class="right">7,196명</td>
+      <td class="center"><span class="badge badge-red">51%</span></td>
+      <td class="center"><span class="badge badge-red">72%</span></td>
+      <td class="right negative">-18,772</td>
+    </tr>
+<tr>
+      <td class="center"><span class="rank rank-n">18</span></td>
+      <td><span class="coin-name">KAT</span></td>
+      <td class="center"><span class="score-warm">53</span></td>
+      <td class="right">3일</td>
+      <td class="right neutral">3.8%</td>
+      <td class="right">8.6%</td>
+      <td class="right">88,476,335</td>
+      <td class="right">15억</td>
+      <td class="right">1,386명</td>
+      <td class="center"><span class="badge badge-yellow">36%</span></td>
+      <td class="center"><span class="badge badge-yellow">52%</span></td>
+      <td class="right negative">-14,261,583</td>
+    </tr>
+<tr>
+      <td class="center"><span class="rank rank-n">19</span></td>
+      <td><span class="coin-name">STORJ</span></td>
+      <td class="center"><span class="score-warm">53</span></td>
+      <td class="right">3일</td>
+      <td class="right neutral">4.8%</td>
+      <td class="right">8.0%</td>
+      <td class="right">9,203,149</td>
+      <td class="right">13억</td>
+      <td class="right">3,841명</td>
+      <td class="center"><span class="badge badge-yellow">30%</span></td>
+      <td class="center"><span class="badge badge-red">94%</span></td>
+      <td class="right negative">-16,305</td>
+    </tr>
+<tr>
+      <td class="center"><span class="rank rank-n">20</span></td>
+      <td><span class="coin-name">THQ</span></td>
+      <td class="center"><span class="score-warm">53</span></td>
+      <td class="right">3일</td>
+      <td class="right neutral">3.0%</td>
+      <td class="right">4.7%</td>
+      <td class="right">61,275,524</td>
+      <td class="right">20억</td>
+      <td class="right">3,706명</td>
+      <td class="center"><span class="badge badge-red">54%</span></td>
+      <td class="center"><span class="badge badge-red">57%</span></td>
+      <td class="right positive">+54,308</td>
+    </tr>
+<tr>
+      <td class="center"><span class="rank rank-n">21</span></td>
+      <td><span class="coin-name">CVC</span></td>
+      <td class="center"><span class="score-warm">52</span></td>
+      <td class="right">7일</td>
+      <td class="right neutral">3.4%</td>
+      <td class="right">9.9%</td>
+      <td class="right">35,743,934</td>
+      <td class="right">16억</td>
+      <td class="right">3,835명</td>
+      <td class="center"><span class="badge badge-yellow">26%</span></td>
+      <td class="center"><span class="badge badge-red">61%</span></td>
+      <td class="right ">0</td>
+    </tr>
+<tr>
+      <td class="center"><span class="rank rank-n">22</span></td>
+      <td><span class="coin-name">BREV</span></td>
+      <td class="center"><span class="score-warm">51</span></td>
+      <td class="right">6일</td>
+      <td class="right neutral">3.5%</td>
+      <td class="right">6.0%</td>
+      <td class="right">5,660,526</td>
+      <td class="right">10억</td>
+      <td class="right">3,745명</td>
+      <td class="center"><span class="badge badge-yellow">27%</span></td>
+      <td class="center"><span class="badge badge-red">73%</span></td>
+      <td class="right positive">+103,575</td>
+    </tr>
+<tr>
+      <td class="center"><span class="rank rank-n">23</span></td>
+      <td><span class="coin-name">NOM</span></td>
+      <td class="center"><span class="score-warm">50</span></td>
+      <td class="right">31일</td>
+      <td class="right neutral">66.3%</td>
+      <td class="right">303.1%</td>
+      <td class="right">138,056,103</td>
+      <td class="right">17억</td>
+      <td class="right">8,599명</td>
+      <td class="center"><span class="badge badge-green">18%</span></td>
+      <td class="center"><span class="badge badge-green">14%</span></td>
+      <td class="right ">0</td>
+    </tr>
+<tr>
+      <td class="center"><span class="rank rank-n">24</span></td>
+      <td><span class="coin-name">HUMA</span></td>
+      <td class="center"><span class="score-warm">50</span></td>
+      <td class="right">5일</td>
+      <td class="right neutral">3.3%</td>
+      <td class="right">5.4%</td>
+      <td class="right">66,258,705</td>
+      <td class="right">14억</td>
+      <td class="right">4,811명</td>
+      <td class="center"><span class="badge badge-yellow">37%</span></td>
+      <td class="center"><span class="badge badge-yellow">49%</span></td>
+      <td class="right positive">+4,012,286</td>
+    </tr>
+<tr>
+      <td class="center"><span class="rank rank-n">25</span></td>
+      <td><span class="coin-name">WET</span></td>
+      <td class="center"><span class="score-warm">50</span></td>
+      <td class="right">5일</td>
+      <td class="right neutral">2.8%</td>
+      <td class="right">6.6%</td>
+      <td class="right">6,823,874</td>
+      <td class="right">11억</td>
+      <td class="right">1,007명</td>
+      <td class="center"><span class="badge badge-red">45%</span></td>
+      <td class="center"><span class="badge badge-red">64%</span></td>
+      <td class="right negative">-88,603</td>
+    </tr>
+<tr>
+      <td class="center"><span class="rank rank-n">26</span></td>
+      <td><span class="coin-name">POLYX</span></td>
+      <td class="center"><span class="score-mild">49</span></td>
+      <td class="right">9일</td>
+      <td class="right neutral">4.4%</td>
+      <td class="right">12.0%</td>
+      <td class="right">26,744,522</td>
+      <td class="right">19억</td>
+      <td class="right">3,142명</td>
+      <td class="center"><span class="badge badge-green">23%</span></td>
+      <td class="center"><span class="badge badge-yellow">47%</span></td>
+      <td class="right positive">+167,989</td>
+    </tr>
+<tr>
+      <td class="center"><span class="rank rank-n">27</span></td>
+      <td><span class="coin-name">POKT</span></td>
+      <td class="center"><span class="score-mild">49</span></td>
+      <td class="right">4일</td>
+      <td class="right neutral">4.5%</td>
+      <td class="right">9.3%</td>
+      <td class="right">95,775,470</td>
+      <td class="right">18억</td>
+      <td class="right">2,410명</td>
+      <td class="center"><span class="badge badge-yellow">27%</span></td>
+      <td class="center"><span class="badge badge-red">55%</span></td>
+      <td class="right positive">+110,811</td>
+    </tr>
+<tr>
+      <td class="center"><span class="rank rank-n">28</span></td>
+      <td><span class="coin-name">KITE</span></td>
+      <td class="center"><span class="score-mild">48</span></td>
+      <td class="right">13일</td>
+      <td class="right neutral">2.9%</td>
+      <td class="right">5.6%</td>
+      <td class="right">12,312,611</td>
+      <td class="right">33억</td>
+      <td class="right">3,687명</td>
+      <td class="center"><span class="badge badge-red">43%</span></td>
+      <td class="center"><span class="badge badge-yellow">46%</span></td>
+      <td class="right positive">+458,082</td>
+    </tr>
+<tr>
+      <td class="center"><span class="rank rank-n">29</span></td>
+      <td><span class="coin-name">DRIFT</span></td>
+      <td class="center"><span class="score-mild">48</span></td>
+      <td class="right">3일</td>
+      <td class="right neutral">2.6%</td>
+      <td class="right">3.1%</td>
+      <td class="right">9,890,974</td>
+      <td class="right">10억</td>
+      <td class="right">1,928명</td>
+      <td class="center"><span class="badge badge-yellow">32%</span></td>
+      <td class="center"><span class="badge badge-red">74%</span></td>
+      <td class="right positive">+13,393</td>
+    </tr>
+<tr>
+      <td class="center"><span class="rank rank-n">30</span></td>
+      <td><span class="coin-name">GWEI</span></td>
+      <td class="center"><span class="score-mild">48</span></td>
+      <td class="right">3일</td>
+      <td class="right neutral">2.9%</td>
+      <td class="right">4.1%</td>
+      <td class="right">31,528,804</td>
+      <td class="right">19억</td>
+      <td class="right">3,498명</td>
+      <td class="center"><span class="badge badge-red">43%</span></td>
+      <td class="center"><span class="badge badge-red">56%</span></td>
+      <td class="right negative">-334,512</td>
+    </tr>
+
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <div class="section-title green">전략 가이드</div>
+    <div class="strategy-grid">
+      <div class="strategy-card green">
+        <h3 class="green">1순위: 즉시 헷징 추천</h3>
+        <ul>
+          <li><strong>CFG</strong> (63점) — 보유자 2,270명, 내부 14억, 18일 반복갭</li>
+          <li><strong>ZORA</strong> (61점) — 고래보유 52%, 거래 79%, 순입금 +287만개</li>
+          <li><strong>EDGE</strong> (60점) — 고래거래 65%, 평균갭 5%, 보유자 2,158명</li>
+          <li>* CFG/BARD는 음펀비 주의 (단기 1~2일 권장)</li>
+        </ul>
+      </div>
+      <div class="strategy-card yellow">
+        <h3 class="yellow">2순위: 조건부 추천</h3>
+        <ul>
+          <li><strong>IOTX</strong> (55점) — 유일한 양펀비, 평균갭 9.5%</li>
+          <li><strong>AZTEC</strong> (58점) — 고래거래 67%, 8일 반복</li>
+          <li><strong>MANTRA</strong> (58점) — 고래거래 80%, 순유출 중</li>
+          <li><strong>ACX/KAVA</strong> (55점) — 고래 집중 + 소수 보유</li>
+        </ul>
+      </div>
+      <div class="strategy-card red">
+        <h3 class="red">주의사항</h3>
+        <ul>
+          <li>음펀비 코인 장기 보유 시 하루 0.5%+ 출혈</li>
+          <li>MC $5M 이하 코인은 슬리피지 극심</li>
+          <li>순입금 음수 = 이미 물량 빠지는 중 (타이밍 주의)</li>
+          <li>실사 전 현물 이체 완료 필수!</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    빗썸 451코인 내부유통량 + 38일 갭이력 338만건 교차분석 | Generated by Claude Code<br>
+    투자 판단은 본인 책임이며, 과거 패턴이 미래를 보장하지 않습니다.
+  </div>
+</div>
+</body>
+</html>
