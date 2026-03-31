@@ -71,7 +71,9 @@ tr:hover{background:#16162a}tr.hl{background:#1a1024}
 <label>점수:</label><select id="fScore"><option value="0">전체</option><option value="60">60+</option><option value="55">55+</option><option value="50">50+</option></select>
 <label>빗썸비중:</label><select id="fBR"><option value="0">전체</option><option value="90">90%+</option><option value="80">80%+</option><option value="50">50%+</option><option value="30">30%+</option></select>
 <label>고래보유:</label><select id="fWhale"><option value="0">전체</option><option value="50">50%+</option><option value="30">30%+</option></select>
+<label>내부가치:</label><select id="fIV"><option value="0">전체</option><option value="5">5억이하</option><option value="10">10억이하</option><option value="30">30억이하</option><option value="50">50억이하</option><option value="100">100억이하</option></select>
 <label>유통/MC:</label><select id="fRatio"><option value="0">전체</option><option value="10">10%+</option><option value="5">5%+</option></select>
+<label>정렬:</label><select id="fSort"><option value="score">점수순</option><option value="iv_mc">내부가치↑ MC↑</option><option value="mc_iv">MC↑ 내부가치↑</option><option value="mc">MC↑</option><option value="iv">내부가치↑</option></select>
 <button class="btn-go" onclick="applyFilter()">적용</button>
 <button class="btn-rst" onclick="resetFilter()">초기화</button>
 <span class="count" id="cntL"></span>
@@ -167,16 +169,24 @@ render(F);
 }
 function applyFilter(){const gap=document.getElementById('fGap').value,mc=document.getElementById('fMC').value,
 sc=+document.getElementById('fScore').value,br=+document.getElementById('fBR').value,
-wh=+document.getElementById('fWhale').value,rt=+document.getElementById('fRatio').value;
+wh=+document.getElementById('fWhale').value,rt=+document.getElementById('fRatio').value,
+iv=+document.getElementById('fIV').value*1e8,
+st=document.getElementById('fSort').value;
 F=D.filter(r=>{
 if(gap==='yes'&&!r.has_gap)return false;if(gap==='no'&&r.has_gap)return false;
 if(mc==='tiny'&&!(r.mc>0&&r.mc<30e6))return false;if(mc==='small'&&!(r.mc>=30e6&&r.mc<80e6))return false;
 if(mc==='mid'&&!(r.mc>=80e6&&r.mc<200e6))return false;if(mc==='big'&&!(r.mc>=200e6))return false;
 if(mc==='unknown'&&r.mc>0)return false;
 if(r.score<sc)return false;if(br>0&&r.bithumb_ratio*100<br)return false;
-if(r.hold_pct<wh)return false;if(rt>0&&r.iv_mc_ratio<rt)return false;return true});
-F.sort((a,b)=>(a[sk]-b[sk])*sd);render(F)}
-function resetFilter(){['fGap','fMC','fScore','fBR','fWhale','fRatio'].forEach(id=>document.getElementById(id).selectedIndex=0);
-F=[...D];sk='score';sd=-1;F.sort((a,b)=>(a[sk]-b[sk])*sd);render(F)}
+if(r.hold_pct<wh)return false;if(rt>0&&r.iv_mc_ratio<rt)return false;
+if(iv>0&&r.internal_value>iv)return false;return true});
+if(st==='iv_mc'){F.sort((a,b)=>a.internal_value-b.internal_value||a.mc-b.mc)}
+else if(st==='mc_iv'){F.sort((a,b)=>a.mc-b.mc||a.internal_value-b.internal_value)}
+else if(st==='mc'){F.sort((a,b)=>a.mc-b.mc)}
+else if(st==='iv'){F.sort((a,b)=>a.internal_value-b.internal_value)}
+else{F.sort((a,b)=>b.score-a.score)}
+render(F)}
+function resetFilter(){['fGap','fMC','fScore','fBR','fWhale','fRatio','fIV','fSort'].forEach(id=>document.getElementById(id).selectedIndex=0);
+F=[...D];F.sort((a,b)=>b.score-a.score);render(F)}
 render(D);
 </script></body></html>
