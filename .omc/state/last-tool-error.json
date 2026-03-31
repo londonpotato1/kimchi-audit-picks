@@ -1,7 +1,0 @@
-{
-  "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"cd /Users/timothy/Downloads/kimchi_audit_analyzer && python3 app.py &\\nsleep 3\\ncurl -s http://127.0.0.1:5174/api/status 2>/dev/null\",\"timeout\":10000,\"description\":\"Start the analyzer serv...",
-  "error": "Exit code 7\nTraceback (most recent call last):\n  File \"/Users/timothy/Downloads/kimchi_audit_analyzer/app.py\", line 10, in <module>\n    from tvDatafeed import TvDatafeed, Interval\n  File \"/Users/timothy/Library/Python/3.9/lib/python/site-packages/tvDatafeed/__init__.py\", line 25, in <module>\n    from .datafeed import TvDatafeedLive\n  File \"/Users/timothy/Library/Python/3.9/lib/python/site-packages/tvDatafeed/datafeed.py\", line 14, in <module>\n    from .main import TvDatafeed, Interval\n  File \"/U...",
-  "timestamp": "2026-03-31T04:23:24.043Z",
-  "retry_count": 1
-}
