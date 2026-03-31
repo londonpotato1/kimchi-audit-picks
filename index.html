@@ -83,20 +83,20 @@ tr:hover{background:#16162a}tr.hl{background:#1a1024}
 </div>
 <table><thead><tr>
 <th class="c" style="width:28px">#</th><th>코인</th>
-<th class="c" onclick="sortBy('score')">점수▼</th>
-<th class="c" onclick="sortBy('has_gap')">갭전력▼</th>
-<th class="r" onclick="sortBy('bithumb_ratio')" style="background:#120a1a">빗썸비중<br><span style="color:#a55eea;font-weight:400">(내부유통/전체유통)</span>▼</th>
-<th class="r" onclick="sortBy('iv_mc_ratio')" style="background:#1a1a0a">빗썸가치/MC<br><span style="color:#ffa502;font-weight:400">(내부가치USD/시총)</span>▼</th>
-<th class="r" onclick="sortBy('mc')" style="background:#1a1028">MC▼</th>
-<th class="r" onclick="sortBy('internal_value')" style="background:#0a1a16">내부가치▼</th>
-<th class="r" onclick="sortBy('holders')">보유자</th>
-<th class="c" onclick="sortBy('hold_pct')">고래보유</th>
-<th class="c" onclick="sortBy('trade_pct')">고래거래</th>
-<th class="r" onclick="sortBy('gap_days')">갭일</th>
-<th class="r" onclick="sortBy('avg_gap')">평균갭</th>
-<th class="r" onclick="sortBy('prev_0930')" style="background:#0a1a1a">9/30실사<br><span style="color:#56e0a0;font-weight:400">최대김프</span>▼</th>
-<th class="r" onclick="sortBy('prev_max')" style="background:#1a0a1a">12/31실사<br><span style="color:#e056a0;font-weight:400">최대김프</span>▼</th>
-<th class="r" onclick="sortBy('net_deposit')">순입금(24h)<br><span style="color:#888;font-weight:400">(코인수량)</span></th>
+<th class="c" onclick="sortBy(event,'score')">점수▼</th>
+<th class="c" onclick="sortBy(event,'has_gap')">갭전력▼</th>
+<th class="r" onclick="sortBy(event,'bithumb_ratio')" style="background:#120a1a">빗썸비중<br><span style="color:#a55eea;font-weight:400">(내부유통/전체유통)</span>▼</th>
+<th class="r" onclick="sortBy(event,'iv_mc_ratio')" style="background:#1a1a0a">빗썸가치/MC<br><span style="color:#ffa502;font-weight:400">(내부가치USD/시총)</span>▼</th>
+<th class="r" onclick="sortBy(event,'mc')" style="background:#1a1028">MC▼</th>
+<th class="r" onclick="sortBy(event,'internal_value')" style="background:#0a1a16">내부가치▼</th>
+<th class="r" onclick="sortBy(event,'holders')">보유자</th>
+<th class="c" onclick="sortBy(event,'hold_pct')">고래보유</th>
+<th class="c" onclick="sortBy(event,'trade_pct')">고래거래</th>
+<th class="r" onclick="sortBy(event,'gap_days')">갭일</th>
+<th class="r" onclick="sortBy(event,'avg_gap')">평균갭</th>
+<th class="r" onclick="sortBy(event,'prev_0930')" style="background:#0a1a1a">9/30실사<br><span style="color:#56e0a0;font-weight:400">최대김프</span>▼</th>
+<th class="r" onclick="sortBy(event,'prev_max')" style="background:#1a0a1a">12/31실사<br><span style="color:#e056a0;font-weight:400">최대김프</span>▼</th>
+<th class="r" onclick="sortBy(event,'net_deposit')">순입금(24h)<br><span style="color:#888;font-weight:400">(코인수량)</span></th>
 </tr></thead><tbody id="tb"></tbody></table>
 <div class="footer">
 빗썸 전체 코인 분석 | <b>갭전력 O</b> = 38일간 해외대비 2%+ 갭 발생 이력 | <b>갭전력 -</b> = 이력 없으나 빗썸비중 높아 신규 펌핑 가능<br>
@@ -145,8 +145,8 @@ t.innerHTML+='<tr class="'+hl+'"><td class="c"><span class="rank '+rk+'">'+(i+1)
 '<td class="r '+nc+'">'+ns+'</td></tr>'});
 document.getElementById('cntL').textContent=d.length+'개';}
 let sortKeys=[{key:'score',dir:-1}];
-function sortBy(k){
-const ev=event&&(event.shiftKey||event.metaKey);
+function sortBy(e,k){
+const ev=e&&(e.shiftKey||e.metaKey);
 if(!ev){
 // 단일 클릭: 해당 컬럼만 정렬
 const old=sortKeys.find(s=>s.key===k);
