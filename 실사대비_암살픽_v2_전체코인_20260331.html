@@ -144,19 +144,26 @@ t.innerHTML+='<tr class="'+hl+'"><td class="c"><span class="rank '+rk+'">'+(i+1)
 '<td class="r" style="background:#0d0a10">'+(r.prev_max>=5?'<span style="color:#e056a0;font-weight:700">'+r.prev_max.toFixed(1)+'%</span>':r.prev_max>=2?'<span style="color:#ffa502">'+r.prev_max.toFixed(1)+'%</span>':r.prev_max>0?'<span style="color:#666">'+r.prev_max.toFixed(1)+'%</span>':'<span style="color:#333">-</span>')+'</td>'+
 '<td class="r '+nc+'">'+ns+'</td></tr>'});
 document.getElementById('cntL').textContent=d.length+'개';}
-let sortKeys=[];
+let sortKeys=[{key:'score',dir:-1}];
 function sortBy(k){
+const ev=event&&(event.shiftKey||event.metaKey);
+if(!ev){
+// 단일 클릭: 해당 컬럼만 정렬
+const old=sortKeys.find(s=>s.key===k);
+sortKeys=[{key:k,dir:old&&old.key===k?old.dir*-1:-1}];
+}else{
+// Shift/Cmd+클릭: 복수 정렬 추가
 const idx=sortKeys.findIndex(s=>s.key===k);
-if(idx===0){sortKeys[0].dir*=-1}
-else{sortKeys=sortKeys.filter(s=>s.key!==k);sortKeys.unshift({key:k,dir:-1})}
+if(idx>=0){sortKeys[idx].dir*=-1}
+else{sortKeys.push({key:k,dir:-1})}
 if(sortKeys.length>3)sortKeys=sortKeys.slice(0,3);
+}
 F.sort((a,b)=>{
 for(const s of sortKeys){
-const av=s.key==='has_gap'?(a[s.key]?1:0):a[s.key];
-const bv=s.key==='has_gap'?(b[s.key]?1:0):b[s.key];
+const av=s.key==='has_gap'?(a[s.key]?1:0):(a[s.key]||0);
+const bv=s.key==='has_gap'?(b[s.key]?1:0):(b[s.key]||0);
 if(av!==bv)return(av-bv)*s.dir}return 0});
 render(F);
-document.querySelectorAll('th').forEach(th=>{th.style.borderBottom=''});
 }
 function applyFilter(){const gap=document.getElementById('fGap').value,mc=document.getElementById('fMC').value,
 sc=+document.getElementById('fScore').value,br=+document.getElementById('fBR').value,
