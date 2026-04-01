@@ -190,5 +190,5 @@ else{F.sort((a,b)=>b.score-a.score)}
 render(F)}
 function resetFilter(){['fGap','fMC','fScore','fBR','fWhale','fRatio','fIV','fSort'].forEach(id=>document.getElementById(id).selectedIndex=0);
 F=[...D];F.sort((a,b)=>b.score-a.score);render(F)}
-render(D);
+D.sort((a,b)=>(a.internal_value||1e18)-(b.internal_value||1e18));F=[...D];render(F);
 </script></body></html>
