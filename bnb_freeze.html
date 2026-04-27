@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>빗썸 BNB 체인 입출금 중지 25 | 2026.04.28</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#08080d;color:#d0d0d0;font-family:-apple-system,'Pretendard',sans-serif;padding:20px;font-size:14px}
+.container{max-width:1750px;margin:0 auto}
+.header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;border-bottom:2px solid #16162a;padding-bottom:16px}
+.header h1{font-size:24px;color:#fff}.header h1 em{color:#ff4757;font-style:normal}
+.header-meta{text-align:right;font-size:12px;color:#666;line-height:1.7}.header-meta b{color:#ffa502}
+.stats{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;margin-bottom:18px}
+.stat{background:#10101c;border-radius:8px;padding:12px;border:1px solid #1a1a30}
+.stat-label{font-size:11px;color:#666;letter-spacing:.5px}
+.stat-val{font-size:20px;font-weight:700;margin-top:2px}
+.stat-val.r{color:#ff4757}.stat-val.g{color:#2ed573}.stat-val.y{color:#ffa502}.stat-val.b{color:#3498db}.stat-val.p{color:#a55eea}
+.stat-sub{font-size:11px;color:#444;margin-top:2px}
+.filters{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
+.filters label{font-size:12px;color:#888}
+.filters select{background:#10101c;border:1px solid #1a1a30;color:#ddd;padding:5px 8px;border-radius:5px;font-size:12px}
+.filters button{padding:5px 12px;border-radius:5px;font-size:12px;cursor:pointer;font-weight:600;border:none}
+.btn-go{background:#ff4757;color:#fff}.btn-rst{background:#1a1a30;color:#aaa}
+.count{font-size:13px;color:#ffa502;margin-left:6px}
+table{width:100%;border-collapse:collapse;background:#10101c;border-radius:10px;overflow:hidden;font-size:13px}
+thead{background:#14142a;position:sticky;top:0;z-index:10}
+th{padding:9px 7px;font-size:11px;font-weight:600;color:#666;text-align:left;white-space:nowrap;cursor:pointer;user-select:none}
+th:hover{color:#ffa502}th.r,td.r{text-align:right}th.c,td.c{text-align:center}
+td{padding:8px 7px;border-top:1px solid #14142a;white-space:nowrap}
+tr:hover{background:#16162a}tr.hl{background:#1a1024}
+.coin{font-weight:700;color:#fff;font-size:13px}
+.badge{display:inline-block;padding:2px 6px;border-radius:3px;font-size:11px;font-weight:600}
+.bg{background:#0a3d2a;color:#2ed573}.br{background:#3d0a0a;color:#ff4757}.by{background:#3d2e0a;color:#ffa502}.bn{background:#1a1a30;color:#888}
+.mc-h{font-weight:700;font-size:13px}.mc-t{color:#ff4757}.mc-s{color:#ffa502}.mc-m{color:#aaa}.mc-b{color:#555}
+.iv-h{font-weight:700}.iv-hi{color:#2ed573}.iv-md{color:#ffa502}.iv-lo{color:#888}
+.pos{color:#2ed573}.neg{color:#ff4757}
+.sb{display:inline-block;padding:2px 7px;border-radius:10px;font-weight:700;font-size:13px}
+.sh{background:#ff4757;color:#fff}.sw{background:#ffa502;color:#000}.sm{background:#1a1a30;color:#888}
+.rank{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;font-weight:700;font-size:11px}
+.r1{background:#ffa502;color:#000}.r2{background:#c0c0c0;color:#000}.r3{background:#cd7f32;color:#000}.rn{background:#1a1a30;color:#666}
+.rx{background:#ff4757;color:#fff;padding:2px 6px;border-radius:3px;font-size:11px;font-weight:700}
+.rh{background:#ffa502;color:#000;padding:2px 6px;border-radius:3px;font-size:11px;font-weight:700}
+.rm{color:#ffa502;font-size:12px;font-weight:600}.rl{color:#666;font-size:12px}
+.bx{background:linear-gradient(90deg,#a55eea,#8854d0);color:#fff;padding:2px 6px;border-radius:3px;font-size:12px;font-weight:700}
+.bh{background:linear-gradient(90deg,#ffa502,#ffc048);color:#000;padding:2px 6px;border-radius:3px;font-size:12px;font-weight:700}
+.bm{color:#a55eea;font-size:12px;font-weight:600}.bl{color:#666;font-size:12px}
+.gap-yes{background:#0a3d2a;color:#2ed573;padding:2px 8px;border-radius:3px;font-size:11px;font-weight:700}
+.gap-no{background:#2a1a0a;color:#ff9f43;padding:2px 8px;border-radius:3px;font-size:11px;font-weight:600}
+.td-mc{background:#0d0d18}.td-iv{background:#080d0b}.td-br{background:#0d0a12}.td-rt{background:#12120a}
+.legend{display:flex;gap:12px;margin-bottom:8px;font-size:12px;color:#555;flex-wrap:wrap}
+.legend span{display:flex;align-items:center;gap:3px}
+.footer{margin-top:24px;padding-top:12px;border-top:1px solid #14142a;font-size:11px;color:#333;text-align:center;line-height:1.6}
+@media(max-width:900px){.stats{grid-template-columns:repeat(3,1fr)}}
+</style></head><body>
+<div class="container">
+<div class="header">
+<div><h1><em>정기실사 암살픽</em> v2 — 전체 코인 + 갭전력</h1>
+<p style="color:#666;font-size:13px;margin-top:3px">빗썸 전체 코인 | 빗썸비중 + MC + 갭이력 유무 통합 분석</p>
+<p style="color:#ff9f43;font-size:12px;margin-top:6px;padding:6px 10px;background:#2a1a0a;border-radius:6px;display:inline-block">🚨 <b>2026.04.28 09:00 KST</b> 빗썸 BNB 체인 입출막 25코인 → <a href="./bnb_freeze.html" style="color:#ffa502;font-weight:700">바로 보기 →</a></p>
+<p style="color:#444;font-size:11px;margin-top:4px">built by London Potato</p></div>
+<div class="header-meta">생성: <b>2026.03.31 KST</b><br>갭: <b>38일 338만건</b> | 빗썸: <b>451코인</b></div>
+</div>
+<div class="stats">
+<div class="stat"><div class="stat-label">대상 코인</div><div class="stat-val b">25</div><div class="stat-sub">BNB 체인 입출막</div></div>
+<div class="stat"><div class="stat-label">갭전력 있음</div><div class="stat-val g">19</div><div class="stat-sub">과거 2%+ 갭 발생</div></div>
+<div class="stat"><div class="stat-label">갭전력 없음</div><div class="stat-val y">6</div><div class="stat-sub">첫 펌핑 가능성</div></div>
+<div class="stat"><div class="stat-label">고위험 60+</div><div class="stat-val r">6</div><div class="stat-sub">즉시 주시</div></div>
+<div class="stat"><div class="stat-label">빗썸비중 80%+</div><div class="stat-val p">0</div><div class="stat-sub">유통량 대부분 빗썸</div></div>
+<div class="stat"><div class="stat-label">최고 빗썸비중</div><div class="stat-val p">44.1%</div><div class="stat-sub">XTER</div></div>
+<div class="stat"><div class="stat-label">최고 점수</div><div class="stat-val r">73</div><div class="stat-sub">COOKIE</div></div>
+</div>
+<div class="filters">
+<label>갭전력:</label><select id="fGap"><option value="all">전체</option><option value="yes">있음</option><option value="no">없음(신규후보)</option></select>
+<label>MC:</label><select id="fMC"><option value="all">전체</option><option value="tiny">&lt;$30M</option><option value="small">$30-80M</option><option value="mid">$80-200M</option><option value="big">$200M+</option><option value="micro">극소($100K미만)</option></select>
+<label>점수:</label><select id="fScore"><option value="0">전체</option><option value="60">60+</option><option value="55">55+</option><option value="50">50+</option></select>
+<label>빗썸비중:</label><select id="fBR"><option value="0">전체</option><option value="90">90%+</option><option value="80">80%+</option><option value="50">50%+</option><option value="30">30%+</option></select>
+<label>고래보유:</label><select id="fWhale"><option value="0">전체</option><option value="50">50%+</option><option value="30">30%+</option></select>
+<label>내부가치:</label><select id="fIV"><option value="0">전체</option><option value="5">5억이하</option><option value="10">10억이하</option><option value="30">30억이하</option><option value="50">50억이하</option><option value="100">100억이하</option></select>
+<label>유통/MC:</label><select id="fRatio"><option value="0">전체</option><option value="10">10%+</option><option value="5">5%+</option></select>
+<label>정렬:</label><select id="fSort"><option value="score">펌핑예측순(v2)</option><option value="iv_mc">내부가치↑ MC↑</option><option value="mc_iv">MC↑ 내부가치↑</option><option value="mc">MC↑</option><option value="iv">내부가치↑</option></select>
+<button class="btn-go" onclick="applyFilter()">적용</button>
+<button class="btn-rst" onclick="resetFilter()">초기화</button>
+<span class="count" id="cntL"></span>
+</div>
+<div class="legend">
+<span>갭전력: <span class="gap-yes">O 있음</span> = 과거 펌핑 전력 <span class="gap-no">- 없음</span> = 신규 후보</span>
+<span>|</span><span>빗썸비중: <span class="bx" style="font-size:10px">80%+</span> <span class="bh" style="font-size:10px">50%+</span> (내부유통/전체유통)</span>
+<span>|</span><span>유통/MC: <span class="rx" style="font-size:10px">10%+</span> <span class="rh" style="font-size:10px">5%+</span> (내부가치USD/시총)</span>
+</div>
+<table><thead><tr>
+<th class="c" style="width:28px">#</th><th>코인</th>
+<th class="c" onclick="sortBy(event,'score')">점수▼</th>
+<th class="c" onclick="sortBy(event,'has_gap')">갭전력▼</th>
+<th class="r" onclick="sortBy(event,'bithumb_ratio')" style="background:#120a1a">빗썸비중<br><span style="color:#a55eea;font-weight:400">(내부유통/전체유통)</span>▼</th>
+<th class="r" onclick="sortBy(event,'iv_mc_ratio')" style="background:#1a1a0a">빗썸가치/MC<br><span style="color:#ffa502;font-weight:400">(내부가치USD/시총)</span>▼</th>
+<th class="r" onclick="sortBy(event,'mc')" style="background:#1a1028">MC▼</th>
+<th class="r" onclick="sortBy(event,'internal_value')" style="background:#0a1a16">내부가치▼</th>
+<th class="r" onclick="sortBy(event,'holders')">보유자</th>
+<th class="c" onclick="sortBy(event,'hold_pct')">고래보유</th>
+<th class="c" onclick="sortBy(event,'trade_pct')">고래거래</th>
+<th class="r" onclick="sortBy(event,'gap_days')">갭일</th>
+<th class="r" onclick="sortBy(event,'avg_gap')">평균갭</th>
+<th class="r" onclick="sortBy(event,'prev_0930')" style="background:#0a1a1a">9/30실사<br><span style="color:#56e0a0;font-weight:400">최대김프</span>▼</th>
+<th class="r" onclick="sortBy(event,'prev_max')" style="background:#1a0a1a">12/31실사<br><span style="color:#e056a0;font-weight:400">최대김프</span>▼</th>
+<th class="r" onclick="sortBy(event,'audit_0331')" style="background:#1a1a0a">3/31실사<br><span style="color:#ff6348;font-weight:400">최대김프</span>▼</th>
+<th class="r" onclick="sortBy(event,'net_deposit')">순입금(24h)<br><span style="color:#888;font-weight:400">(코인수량)</span></th>
+</tr></thead><tbody id="tb"></tbody></table>
+<div class="footer">
+빗썸 BNB 체인 입출금 중지 25개 코인 분석 | 외부 보강(CoinGecko): <b>3코인</b> ⚠ 표시 | <b>갭전력 O</b> = 과거 해외대비 2%+ 갭 발생 이력 | 기준일: <b>2026.03.31 정기실사</b><br>
+Generated by Claude Code | 투자 판단은 본인 책임
+</div></div>
+<script>
+const D=[{"coin": "ACE", "score": 60, "mc": 66603.86, "mc_fmt": "$67K", "has_gap": true, "gap_days": 4, "avg_gap": 3.5, "max_gap": 8.1, "internal_value": 2957743986.0, "iv_fmt": "30억", "cum_deposit": 16710418, "net_deposit": 44798, "holders": 18920, "hold_pct": 19, "trade_pct": 80, "iv_mc_ratio": 999.9, "bithumb_ratio": 0.17983279562771226, "prev_max": 0.3, "prev_avg": -0.2, "prev_0930": 0.4, "audit_0331": 4.4, "external": false, "kor_name": "퓨처니스트"}, {"coin": "ASTER", "score": 50, "mc": 1694991434.3758843, "mc_fmt": "$1.7B", "has_gap": true, "gap_days": 29, "avg_gap": 2.67, "max_gap": 3.29, "internal_value": 3894630337.0, "iv_fmt": "39억", "cum_deposit": 3777527, "net_deposit": 19637, "holders": 4083, "hold_pct": 50, "trade_pct": 86, "iv_mc_ratio": 0.2, "bithumb_ratio": 0.001524955700676484, "prev_max": 0.3, "prev_avg": -0.1, "prev_0930": 0, "audit_0331": 2.0, "external": false, "kor_name": "아스터"}, {"coin": "BNB", "score": 15, "mc": 83570226990.37509, "mc_fmt": "$83.6B", "has_gap": false, "gap_days": 0, "avg_gap": 0, "max_gap": 0, "internal_value": 13539352500.0, "iv_fmt": "135억", "cum_deposit": 14535, "net_deposit": 91, "holders": 35497, "hold_pct": 11, "trade_pct": 59, "iv_mc_ratio": 0.0, "bithumb_ratio": 0.00010659505473749566, "prev_max": 0.2, "prev_avg": -0.0, "prev_0930": 0.3, "audit_0331": 1.7, "external": false, "kor_name": "비앤비"}, {"coin": "C98", "score": 66, "mc": 25373922.833986934, "mc_fmt": "$25M", "has_gap": true, "gap_days": 29, "avg_gap": 2.73, "max_gap": 5.32, "internal_value": 1467335663.4, "iv_fmt": "15억", "cum_deposit": 37935255, "net_deposit": 493406, "holders": 14904, "hold_pct": 54, "trade_pct": 75, "iv_mc_ratio": 3.8, "bithumb_ratio": 0.037935297335791825, "prev_max": 7.4, "prev_avg": 1.4, "prev_0930": 0.4, "audit_0331": 2.3, "external": false, "kor_name": "코인98"}, {"coin": "CAKE", "score": 43, "mc": 458325499.275, "mc_fmt": "$458M", "has_gap": true, "gap_days": 29, "avg_gap": 2.74, "max_gap": 2.63, "internal_value": 2090500079.0, "iv_fmt": "21억", "cum_deposit": 990289, "net_deposit": 9300, "holders": 18028, "hold_pct": 28, "trade_pct": 69, "iv_mc_ratio": 0.3, "bithumb_ratio": 0.003014131129918028, "prev_max": 0.3, "prev_avg": 0.0, "prev_0930": 0.4, "audit_0331": 1.7, "external": false, "kor_name": "팬케이크스왑"}, {"coin": "COOKIE", "score": 73, "mc": 11159674.22, "mc_fmt": "$11M", "has_gap": true, "gap_days": 29, "avg_gap": 2.79, "max_gap": 9.95, "internal_value": 748128714.2, "iv_fmt": "7억", "cum_deposit": 31944010, "net_deposit": -112611, "holders": 37229, "hold_pct": 34, "trade_pct": 74, "iv_mc_ratio": 4.4, "bithumb_ratio": 0.045307641484228625, "prev_max": 33.7, "prev_avg": 7.4, "prev_0930": 0.5, "audit_0331": 1.7, "external": false, "kor_name": "쿠키다오"}, {"coin": "CYS", "score": 48, "mc": 62004480.0, "mc_fmt": "$62M", "has_gap": true, "gap_days": 4, "avg_gap": 3.0, "max_gap": 6.3, "internal_value": 1509000086.0, "iv_fmt": "15억", "cum_deposit": 2784133, "net_deposit": -125143, "holders": 1261, "hold_pct": 44, "trade_pct": 39, "iv_mc_ratio": 1.6, "bithumb_ratio": 0.017314259950248757, "prev_max": 0, "prev_avg": 0, "prev_0930": 0, "audit_0331": 0, "external": false, "kor_name": "싸이식"}, {"coin": "D", "score": 38, "mc": 4974145.17402, "mc_fmt": "$5M", "has_gap": true, "gap_days": 4, "avg_gap": 3.3, "max_gap": 5.7, "internal_value": 2099497859.75, "iv_fmt": "21억", "cum_deposit": 184977785, "net_deposit": 36036162, "holders": 8409, "hold_pct": 15, "trade_pct": 18, "iv_mc_ratio": 27.8, "bithumb_ratio": 0.24878674392405747, "prev_max": 0.9, "prev_avg": 0.4, "prev_0930": 0.1, "audit_0331": 1.7, "external": false, "kor_name": "달오픈네트워크"}, {"coin": "EDU", "score": 55, "mc": 36848261.1426, "mc_fmt": "$37M", "has_gap": false, "gap_days": 0, "avg_gap": 0, "max_gap": 0, "internal_value": 943600811.6999999, "iv_fmt": "9억", "cum_deposit": 10472817, "net_deposit": 280268, "holders": 12001, "hold_pct": 42, "trade_pct": 75, "iv_mc_ratio": 1.7, "bithumb_ratio": 0.017081302677057302, "prev_max": 0.9, "prev_avg": -0.0, "prev_0930": 0.5, "audit_0331": 2.3, "external": false, "kor_name": "오픈캠퍼스"}, {"coin": "FLOKI", "score": 28, "mc": 265359863.59273848, "mc_fmt": "$265M", "has_gap": true, "gap_days": 29, "avg_gap": 2.61, "max_gap": 2.62, "internal_value": 6966712813.0428, "iv_fmt": "70억", "cum_deposit": 164697702436, "net_deposit": 155161024, "holders": 43676, "hold_pct": 10, "trade_pct": 72, "iv_mc_ratio": 1.7, "bithumb_ratio": 0.017266703486106642, "prev_max": 0.4, "prev_avg": 0.0, "prev_0930": 0.4, "audit_0331": 2.1, "external": false, "kor_name": "플로키"}, {"coin": "GMT", "score": 56, "mc": 29805375.78905743, "mc_fmt": "$30M", "has_gap": true, "gap_days": 1, "avg_gap": 2.8, "max_gap": 3.7, "internal_value": 1508475446.44, "iv_fmt": "15억", "cum_deposit": 102757183, "net_deposit": 134406, "holders": 12735, "hold_pct": 14, "trade_pct": 70, "iv_mc_ratio": 3.3, "bithumb_ratio": 0.03302602618787875, "prev_max": 1.1, "prev_avg": 0.3, "prev_0930": 0.5, "audit_0331": 2.3, "external": false, "kor_name": "스테픈"}, {"coin": "HIGH", "score": 68, "mc": 9563314.162, "mc_fmt": "$10M", "has_gap": true, "gap_days": 29, "avg_gap": 2.82, "max_gap": 3.55, "internal_value": 630560845.0, "iv_fmt": "6억", "cum_deposit": 3408437, "net_deposit": -56159, "holders": 14607, "hold_pct": 35, "trade_pct": 85, "iv_mc_ratio": 4.3, "bithumb_ratio": 0.04348171637530274, "prev_max": 0.5, "prev_avg": -0.2, "prev_0930": 1.0, "audit_0331": 2.3, "external": false, "kor_name": "하이스트리트"}, {"coin": "HOOK", "score": 43, "mc": 2775762.130580744, "mc_fmt": "$3M", "has_gap": true, "gap_days": 10, "avg_gap": 3.5, "max_gap": 9.4, "internal_value": 1561306737.75, "iv_fmt": "16억", "cum_deposit": 107306305, "net_deposit": 11088466, "holders": 9967, "hold_pct": 17, "trade_pct": 21, "iv_mc_ratio": 37.1, "bithumb_ratio": 0.37205405715880474, "prev_max": 0.4, "prev_avg": -0.2, "prev_0930": 0.9, "audit_0331": 25.2, "external": false, "kor_name": "훅트프로토콜"}, {"coin": "IOST", "score": 50, "mc": 33583962.697796, "mc_fmt": "$34M", "has_gap": false, "gap_days": 0, "avg_gap": 0, "max_gap": 0, "internal_value": 1605187092.99, "iv_fmt": "16억", "cum_deposit": 1017873870, "net_deposit": -729487, "holders": 54811, "hold_pct": 19, "trade_pct": 82, "iv_mc_ratio": 3.2, "bithumb_ratio": 0.031611589613862685, "prev_max": 0.5, "prev_avg": -0.4, "prev_0930": 0.5, "audit_0331": 2.8, "external": false, "kor_name": "이오스트"}, {"coin": "LISTA", "score": 68, "mc": 23422843.86799043, "mc_fmt": "$23M", "has_gap": true, "gap_days": 29, "avg_gap": 3.02, "max_gap": 2.71, "internal_value": 516807875.0, "iv_fmt": "5억", "cum_deposit": 4134463, "net_deposit": -93245, "holders": 4859, "hold_pct": 50, "trade_pct": 75, "iv_mc_ratio": 1.5, "bithumb_ratio": 0.014650011650663776, "prev_max": 0.8, "prev_avg": -0.2, "prev_0930": 0.5, "audit_0331": 4.4, "external": false, "kor_name": "리스타다오"}, {"coin": "MONKY", "score": null, "mc": 1746934, "mc_fmt": "$2M", "has_gap": false, "gap_days": null, "avg_gap": null, "max_gap": null, "internal_value": 1746934, "iv_fmt": "$1.7M ⚠", "cum_deposit": null, "net_deposit": null, "holders": null, "hold_pct": null, "trade_pct": null, "iv_mc_ratio": 1.0, "bithumb_ratio": null, "prev_max": null, "prev_avg": null, "prev_0930": null, "audit_0331": null, "external": true, "circulating_supply": 8499995353961.4, "price": 2.05522e-07, "kor_name": "와이즈멍키"}, {"coin": "PARTI", "score": 53, "mc": 46565099.424, "mc_fmt": "$47M", "has_gap": true, "gap_days": 1, "avg_gap": 2.9, "max_gap": 3.3, "internal_value": 646426586.0, "iv_fmt": "6억", "cum_deposit": 4824079, "net_deposit": 2309, "holders": 31733, "hold_pct": 48, "trade_pct": 76, "iv_mc_ratio": 0.9, "bithumb_ratio": 0.008950918837406754, "prev_max": 0.7, "prev_avg": 0.1, "prev_0930": 0.6, "audit_0331": 2.6, "external": false, "kor_name": "파티네트워크"}, {"coin": "PUMPBTC", "score": 45, "mc": 52437573, "mc_fmt": "$52M", "has_gap": true, "gap_days": 5, "avg_gap": 3.1, "max_gap": 6.0, "internal_value": 52437573, "iv_fmt": "$52.4M ⚠", "cum_deposit": 273370151, "net_deposit": -2018104, "holders": 48884, "hold_pct": 15, "trade_pct": 52, "iv_mc_ratio": null, "bithumb_ratio": null, "prev_max": 0.2, "prev_avg": -0.3, "prev_0930": 28.2, "audit_0331": 2.1, "external": true, "kor_name": "펌프"}, {"coin": "PURSE", "score": null, "mc": 82597, "mc_fmt": "$83K", "has_gap": false, "gap_days": null, "avg_gap": null, "max_gap": null, "internal_value": 82597, "iv_fmt": "$0.1M ⚠", "cum_deposit": null, "net_deposit": null, "holders": null, "hold_pct": null, "trade_pct": null, "iv_mc_ratio": 1.0, "bithumb_ratio": null, "prev_max": null, "prev_avg": null, "prev_0930": null, "audit_0331": null, "external": true, "circulating_supply": 27461333560.399906, "price": 3.02e-06, "kor_name": "펄스토큰"}, {"coin": "SFP", "score": 61, "mc": 142028746.04984865, "mc_fmt": "$142M", "has_gap": true, "gap_days": 29, "avg_gap": 2.54, "max_gap": 2.57, "internal_value": 625134000.0, "iv_fmt": "6억", "cum_deposit": 1453800, "net_deposit": 3883, "holders": 7606, "hold_pct": 52, "trade_pct": 82, "iv_mc_ratio": 0.3, "bithumb_ratio": 0.0029076, "prev_max": 0.3, "prev_avg": -0.1, "prev_0930": 0.6, "audit_0331": 5.2, "external": false, "kor_name": "세이프팔"}, {"coin": "SOLV", "score": 30, "mc": 4616816.4, "mc_fmt": "$5M", "has_gap": true, "gap_days": 20, "avg_gap": 24.7, "max_gap": 103.6, "internal_value": 2686971986.06, "iv_fmt": "27억", "cum_deposit": 189490267, "net_deposit": -523, "holders": 51873, "hold_pct": 14, "trade_pct": 14, "iv_mc_ratio": 38.4, "bithumb_ratio": 0.1278094341022528, "prev_max": 0.2, "prev_avg": -0.1, "prev_0930": 0.3, "audit_0331": 256.7, "external": false, "kor_name": "솔브프로토콜"}, {"coin": "THE", "score": 51, "mc": 14974820.3094, "mc_fmt": "$15M", "has_gap": true, "gap_days": 5, "avg_gap": 5.1, "max_gap": 14.6, "internal_value": 1719979269.0, "iv_fmt": "17억", "cum_deposit": 9717397, "net_deposit": -125054, "holders": 7910, "hold_pct": 17, "trade_pct": 43, "iv_mc_ratio": 7.6, "bithumb_ratio": 0.07540401207293301, "prev_max": 0.4, "prev_avg": 0.0, "prev_0930": 0.4, "audit_0331": 2.0, "external": false, "kor_name": "테나"}, {"coin": "USD1", "score": 58, "mc": 4391460177.316858, "mc_fmt": "$4.4B", "has_gap": false, "gap_days": 0, "avg_gap": 0, "max_gap": 0, "internal_value": 883831863.0, "iv_fmt": "9억", "cum_deposit": 585707, "net_deposit": -7584, "holders": 5410, "hold_pct": 74, "trade_pct": 90, "iv_mc_ratio": 0.0, "bithumb_ratio": 0.00013373161290186294, "prev_max": 0.3, "prev_avg": -0.0, "prev_0930": 0.8, "audit_0331": 1.4, "external": false, "kor_name": "월드리버티파이낸셜유에스디"}, {"coin": "XTER", "score": 30, "mc": 2979458.96216, "mc_fmt": "$3M", "has_gap": true, "gap_days": 8, "avg_gap": 3.8, "max_gap": 16.2, "internal_value": 2303302277.76, "iv_fmt": "23억", "cum_deposit": 70566859, "net_deposit": 2922740, "holders": 58422, "hold_pct": 16, "trade_pct": 15, "iv_mc_ratio": 51.0, "bithumb_ratio": 0.4414782242231009, "prev_max": 1.3, "prev_avg": 0.2, "prev_0930": 0.8, "audit_0331": 1.9, "external": false, "kor_name": "엑스테리오"}, {"coin": "XVS", "score": 25, "mc": 46162384.41038403, "mc_fmt": "$46M", "has_gap": true, "gap_days": 5, "avg_gap": 5.9, "max_gap": 25.9, "internal_value": 2652433745.0, "iv_fmt": "27억", "cum_deposit": 361121, "net_deposit": 0, "holders": 21966, "hold_pct": 15, "trade_pct": 19, "iv_mc_ratio": 3.8, "bithumb_ratio": 0.02207727967975806, "prev_max": 0.3, "prev_avg": -0.1, "prev_0930": 0.7, "audit_0331": 134.4, "external": false, "kor_name": "비너스"}];
+let sk='score',sd=-1,F=[...D];
+function render(d){const t=document.getElementById('tb');t.innerHTML='';
+d.forEach((r,i)=>{
+const sc=r.score>=60?'sh':r.score>=50?'sw':'sm';
+const rk=i<1?'r1':i<2?'r2':i<3?'r3':'rn';
+let mc,ml;if(r.mc<=0){mc='mc-m';ml='-'}else if(r.mc<30e6){mc='mc-t';ml=r.mc_fmt}else if(r.mc<80e6){mc='mc-s';ml=r.mc_fmt}else if(r.mc<200e6){mc='mc-m';ml=r.mc_fmt}else{mc='mc-b';ml=r.mc_fmt}
+const iv=r.internal_value>=50e8?'iv-hi':r.internal_value>=20e8?'iv-md':'iv-lo';
+const hp=r.hold_pct>=40?'br':r.hold_pct>=25?'by':'bg';
+const tp=r.trade_pct>=55?'br':r.trade_pct>=40?'by':'bg';
+const n=r.net_deposit;const ns=n>0?'+'+n.toLocaleString():n.toLocaleString();const nc=n>0?'pos':n<0?'neg':'';
+const hl=r.score>=55?' hl':'';
+const gapH=r.has_gap?'<span class="gap-yes">O</span>':'<span class="gap-no">-</span>';
+const brv=(r.bithumb_ratio*100).toFixed(1);
+let br;if(brv>=80)br='<span class="bx">'+brv+'%</span>';
+else if(brv>=50)br='<span class="bh">'+brv+'%</span>';
+else if(brv>=30)br='<span class="bm">'+brv+'%</span>';
+else if(r.bithumb_ratio>0)br='<span class="bl">'+brv+'%</span>';
+else br='<span class="bl">-</span>';
+let rt;if(r.iv_mc_ratio>=10)rt='<span class="rx">'+r.iv_mc_ratio+'%</span>';
+else if(r.iv_mc_ratio>=5)rt='<span class="rh">'+r.iv_mc_ratio+'%</span>';
+else if(r.iv_mc_ratio>=1)rt='<span class="rm">'+r.iv_mc_ratio+'%</span>';
+else if(r.iv_mc_ratio>0)rt='<span class="rl">'+r.iv_mc_ratio+'%</span>';
+else rt='<span class="rl">-</span>';
+t.innerHTML+='<tr class="'+hl+'"><td class="c"><span class="rank '+rk+'">'+(i+1)+'</span></td>'+
+'<td><span class="coin">'+r.coin+'</span></td>'+
+'<td class="c"><span class="sb '+sc+'">'+r.score+'</span></td>'+
+'<td class="c">'+gapH+'</td>'+
+'<td class="r td-br">'+br+'</td>'+
+'<td class="r td-rt">'+rt+'</td>'+
+'<td class="r td-mc"><span class="mc-h '+mc+'">'+ml+'</span></td>'+
+'<td class="r td-iv"><span class="iv-h '+iv+'">'+r.iv_fmt+'</span></td>'+
+'<td class="r">'+r.holders.toLocaleString()+'</td>'+
+'<td class="c"><span class="badge '+hp+'">'+r.hold_pct+'%</span></td>'+
+'<td class="c"><span class="badge '+tp+'">'+r.trade_pct+'%</span></td>'+
+'<td class="r">'+(r.gap_days>0?r.gap_days+'일':'-')+'</td>'+
+'<td class="r" style="color:#ffa502">'+(r.avg_gap!==0?r.avg_gap.toFixed(1)+'%':'-')+'</td>'+
+'<td class="r" style="background:#0a0d0d">'+(r.prev_0930<0?'<span style="color:#3498db">'+r.prev_0930.toFixed(1)+'%</span>':r.prev_0930>=5?'<span style="color:#56e0a0;font-weight:700">'+r.prev_0930.toFixed(1)+'%</span>':r.prev_0930>=2?'<span style="color:#ffa502">'+r.prev_0930.toFixed(1)+'%</span>':r.prev_0930>0?'<span style="color:#666">'+r.prev_0930.toFixed(1)+'%</span>':r.prev_0930===0?'<span style="color:#333">-</span>':'')+'</td>'+
+'<td class="r" style="background:#0d0a10">'+(r.prev_max<0?'<span style="color:#3498db">'+r.prev_max.toFixed(1)+'%</span>':r.prev_max>=5?'<span style="color:#e056a0;font-weight:700">'+r.prev_max.toFixed(1)+'%</span>':r.prev_max>=2?'<span style="color:#ffa502">'+r.prev_max.toFixed(1)+'%</span>':r.prev_max>0?'<span style="color:#666">'+r.prev_max.toFixed(1)+'%</span>':r.prev_max===0?'<span style="color:#333">-</span>':'')+'</td>'+
+'<td class="r" style="background:#12120a">'+(r.audit_0331>=10?'<span style="color:#ff6348;font-weight:700">'+r.audit_0331.toFixed(1)+'%</span>':r.audit_0331>=5?'<span style="color:#ffa502;font-weight:700">'+r.audit_0331.toFixed(1)+'%</span>':r.audit_0331>=2?'<span style="color:#ffa502">'+r.audit_0331.toFixed(1)+'%</span>':r.audit_0331>0?'<span style="color:#666">'+r.audit_0331.toFixed(1)+'%</span>':'<span style="color:#333">-</span>')+'</td>'+
+'<td class="r '+nc+'">'+ns+'</td></tr>'});
+document.getElementById('cntL').textContent=d.length+'개';}
+let sortKeys=[{key:'score',dir:-1}];
+function sortBy(e,k){
+const ev=e&&(e.shiftKey||e.metaKey);
+if(!ev){
+// 단일 클릭: 해당 컬럼만 정렬
+const old=sortKeys.find(s=>s.key===k);
+sortKeys=[{key:k,dir:old&&old.key===k?old.dir*-1:-1}];
+}else{
+// Shift/Cmd+클릭: 복수 정렬 추가
+const idx=sortKeys.findIndex(s=>s.key===k);
+if(idx>=0){sortKeys[idx].dir*=-1}
+else{sortKeys.push({key:k,dir:-1})}
+if(sortKeys.length>3)sortKeys=sortKeys.slice(0,3);
+}
+F.sort((a,b)=>{
+for(const s of sortKeys){
+const av=s.key==='has_gap'?(a[s.key]?1:0):(a[s.key]||0);
+const bv=s.key==='has_gap'?(b[s.key]?1:0):(b[s.key]||0);
+if(av!==bv)return(av-bv)*s.dir}return 0});
+render(F);
+}
+function applyFilter(){const gap=document.getElementById('fGap').value,mc=document.getElementById('fMC').value,
+sc=+document.getElementById('fScore').value,br=+document.getElementById('fBR').value,
+wh=+document.getElementById('fWhale').value,rt=+document.getElementById('fRatio').value,
+iv=+document.getElementById('fIV').value*1e8,
+st=document.getElementById('fSort').value;
+F=D.filter(r=>{
+if(gap==='yes'&&!r.has_gap)return false;if(gap==='no'&&r.has_gap)return false;
+if(mc==='tiny'&&!(r.mc>0&&r.mc<30e6))return false;if(mc==='small'&&!(r.mc>=30e6&&r.mc<80e6))return false;
+if(mc==='mid'&&!(r.mc>=80e6&&r.mc<200e6))return false;if(mc==='big'&&!(r.mc>=200e6))return false;
+if(mc==='micro'&&!(r.mc>0&&r.mc<100000))return false;
+if(r.score<sc)return false;if(br>0&&r.bithumb_ratio*100<br)return false;
+if(r.hold_pct<wh)return false;if(rt>0&&r.iv_mc_ratio<rt)return false;
+if(iv>0&&r.internal_value>iv)return false;return true});
+if(st==='iv_mc'){F.sort((a,b)=>a.internal_value-b.internal_value||a.mc-b.mc)}
+else if(st==='mc_iv'){F.sort((a,b)=>a.mc-b.mc||a.internal_value-b.internal_value)}
+else if(st==='mc'){F.sort((a,b)=>a.mc-b.mc)}
+else if(st==='iv'){F.sort((a,b)=>a.internal_value-b.internal_value)}
+else{F.sort((a,b)=>b.score-a.score)}
+render(F)}
+function resetFilter(){['fGap','fMC','fScore','fBR','fWhale','fRatio','fIV','fSort'].forEach(id=>document.getElementById(id).selectedIndex=0);
+F=[...D];F.sort((a,b)=>b.score-a.score);render(F)}
+D.sort((a,b)=>(a.internal_value||1e18)-(b.internal_value||1e18));F=[...D];render(F);
+</script></body></html>
