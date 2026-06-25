@@ -3,3 +3,5 @@
 *.json
 data_base*.js.txt
 .omc/
+.oh-no/
+index.html.bak_*
