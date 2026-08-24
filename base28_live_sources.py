@@ -69,12 +69,15 @@ def number_value(value: JsonValue, context: str) -> float:
     if isinstance(value, bool):  # noqa: IF_VARIANT_OK - Python 3.9 compatibility
         raise LiveSourceError(f"{context}: bool은 숫자 값이 아닙니다")
     elif isinstance(value, (int, float)):  # noqa: IF_VARIANT_OK
-        number = float(value)
+        try:
+            number = float(value)
+        except OverflowError as exc:
+            raise LiveSourceError(f"{context}: 숫자 값이 아닙니다 ({value!r})") from exc
     elif isinstance(value, str):  # noqa: IF_VARIANT_OK
         cleaned = value.replace(",", "").strip()
         try:
             number = float(cleaned)
-        except ValueError as exc:
+        except (ValueError, OverflowError) as exc:
             raise LiveSourceError(f"{context}: 숫자 값이 아닙니다 ({value!r})") from exc
     else:
         raise LiveSourceError(f"{context}: 숫자 값이 아닙니다 ({value!r})")

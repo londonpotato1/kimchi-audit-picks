@@ -180,7 +180,8 @@ def test_live_overlay_uses_base28_formula_definitions() -> None:
 
 
 @pytest.mark.parametrize(
-    "value", [True, False, math.nan, math.inf, -math.inf, "NaN", "Infinity", "bad"]
+    "value",
+    [True, False, math.nan, math.inf, -math.inf, 10**400, "NaN", "Infinity", "bad"],
 )
 def test_number_value_rejects_bool_non_finite_and_conversion_errors(
     value: live.JsonValue,
