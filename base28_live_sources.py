@@ -1,12 +1,12 @@
-#!/usr/bin/env python3
 from __future__ import annotations
 
-from dataclasses import dataclass
 import json
+import math
 import time
-from typing import Final, Union, cast
+from contextlib import AbstractContextManager
+from dataclasses import dataclass
+from typing import BinaryIO, Final, Union, cast
 from urllib import error, parse, request
-
 
 BITHUMB_GW: Final = "https://gw.bithumb.com"
 CG: Final = "https://api.coingecko.com/api/v3"
@@ -31,7 +31,7 @@ class LiveSourceError(RuntimeError):
     pass
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True)  # noqa: SLOTS_OK - shared module supports Python 3.9
 class LiveMetric:
     coin_type: str
     market_cap_usd: MetricNumber
@@ -66,17 +66,25 @@ def text_value(value: JsonValue, context: str) -> str:
 
 
 def number_value(value: JsonValue, context: str) -> float:
-    if isinstance(value, (int, float)):
-        return float(value)
-    if isinstance(value, str):
+    if isinstance(value, bool):  # noqa: IF_VARIANT_OK - Python 3.9 compatibility
+        raise LiveSourceError(f"{context}: bool은 숫자 값이 아닙니다")
+    elif isinstance(value, (int, float)):  # noqa: IF_VARIANT_OK
+        number = float(value)
+    elif isinstance(value, str):  # noqa: IF_VARIANT_OK
         cleaned = value.replace(",", "").strip()
-        if cleaned and cleaned != "-":
-            return float(cleaned)
-    raise LiveSourceError(f"{context}: 숫자 값이 아닙니다 ({value!r})")
+        try:
+            number = float(cleaned)
+        except ValueError as exc:
+            raise LiveSourceError(f"{context}: 숫자 값이 아닙니다 ({value!r})") from exc
+    else:
+        raise LiveSourceError(f"{context}: 숫자 값이 아닙니다 ({value!r})")
+    if not math.isfinite(number):
+        raise LiveSourceError(f"{context}: 유한하지 않은 숫자 값 ({value!r})")
+    return number
 
 
 def int_value(value: JsonValue, context: str) -> int:
-    return int(round(number_value(value, context)))
+    return round(number_value(value, context))
 
 
 def read_response_data(payload: JsonValue, context: str) -> dict[str, JsonValue]:
@@ -93,7 +101,10 @@ def fetch_json(url: str, context: str, retries: int = 3) -> JsonValue:
     for attempt in range(1, retries + 1):
         try:
             req = request.Request(url, headers=HEADERS)
-            with request.urlopen(req, timeout=30) as response:
+            response_context = cast(
+                AbstractContextManager[BinaryIO], request.urlopen(req, timeout=30)
+            )
+            with response_context as response:
                 return cast(JsonValue, json.loads(response.read().decode("utf-8")))
         except (error.URLError, TimeoutError, json.JSONDecodeError) as exc:
             if attempt == retries:
