@@ -39,6 +39,97 @@ def fake_live_metrics() -> dict[str, build_bnb28.LiveMetric]:
     }
 
 
+def fake_suspended_data() -> build_bnb28.SuspendedData:
+    return build_bnb28.SuspendedData(
+        coin_type="C1013",
+        market_cap_usd=286_000.0,
+        circulating_supply=8_500_000_000_000.0,
+        price_usd=3.36e-08,
+        accumulation_deposit_amt=44_770_573_162.0,
+        purity_deposit=0,
+        number_of_holders=24_560,
+        holding_percentage=11,
+        bithumb_timestamp="2026-08-25 03:20:27",
+        coingecko_updated_at="2026-08-24T18:27:20.000Z",
+    )
+
+
+def test_suspended_row_is_partial_with_shared_formulas_and_no_side_effects() -> None:
+    metrics = fake_live_metrics()
+    del metrics["MONKY"]
+    data = fake_suspended_data()
+    fx = 1_400.0
+    rows = build_bnb28.build_rows(
+        live_metrics=metrics,
+        fx_usd_krw=fx,
+        fetched_at="2026-08-25T03:30:00+09:00",
+        suspended={"MONKY": data},
+    )
+    by_symbol = {str(row["coin"]): row for row in rows}
+    monky = by_symbol["MONKY"]
+
+    price_krw = data.price_usd * fx
+    internal_value = round(data.accumulation_deposit_amt * price_krw)
+    assert monky["live_status"] == "partial"
+    assert monky["trade_pct"] is None
+    assert monky["source_errors"] == ""
+    assert monky["price_krw"] == price_krw
+    assert monky["internal_value"] == internal_value
+    assert monky["iv_mc_ratio"] == round(
+        internal_value / (data.market_cap_usd * fx) * 100, 1
+    )
+    assert monky["bithumb_ratio"] == (
+        data.accumulation_deposit_amt / data.circulating_supply
+    )
+    assert monky["as_of"] == "2026-08-25"
+    assert "거래지원종료" in str(monky["data_note"])
+    assert all(
+        by_symbol[symbol]["live_status"] == "complete"
+        for symbol in EXPECTED_SYMBOLS
+        if symbol != "MONKY"
+    )
+    assert len({frozenset(row) for row in rows}) == 1
+
+
+def test_invalid_suspended_values_are_isolated_as_missing() -> None:
+    metrics = fake_live_metrics()
+    del metrics["MONKY"]
+    del metrics["PURSE"]
+    bad = replace(fake_suspended_data(), market_cap_usd=0.0)
+    rows = build_bnb28.build_rows(
+        live_metrics=metrics,
+        fx_usd_krw=1_400.0,
+        fetched_at="2026-08-25T03:30:00+09:00",
+        suspended={"MONKY": bad, "PURSE": fake_suspended_data()},
+    )
+    by_symbol = {str(row["coin"]): row for row in rows}
+
+    assert by_symbol["MONKY"]["live_status"] == "missing"
+    assert by_symbol["MONKY"]["internal_value"] is None
+    assert "market_cap_usd" in str(by_symbol["MONKY"]["source_errors"])
+    assert by_symbol["PURSE"]["live_status"] == "partial"
+    assert by_symbol["CAKE"]["live_status"] == "complete"
+
+
+def test_suspended_hostile_timestamp_is_rejected_before_data_note() -> None:
+    metrics = fake_live_metrics()
+    del metrics["MONKY"]
+    hostile = replace(
+        fake_suspended_data(), bithumb_timestamp='</script><img src=x onerror="boom">'
+    )
+    rows = build_bnb28.build_rows(
+        live_metrics=metrics,
+        fx_usd_krw=1_400.0,
+        fetched_at="2026-08-25T03:30:00+09:00",
+        suspended={"MONKY": hostile},
+    )
+    monky = next(row for row in rows if row["coin"] == "MONKY")
+
+    assert monky["live_status"] == "missing"
+    assert "timestamp" in str(monky["source_errors"])
+    assert monky["data_note"] is None
+
+
 def test_shared_live_source_imports_with_repository_python3() -> None:
     python3 = shutil.which("python3", path=os.defpath)
     assert python3 is not None

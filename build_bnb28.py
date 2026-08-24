@@ -44,6 +44,25 @@ class FetchResult:
     fx_usd_krw: float | None
     errors: dict[str, str]
     fetched_at: str
+    suspended: dict[str, "SuspendedData"] | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class SuspendedData:
+    """빗썸 거래지원종료(isLive=false) 종목 — observer 시세 없음, 내부지표만 존재.
+
+    trade_pct는 거래 데이터 부재("-")라 수집 불가, 가격은 CoinGecko USD×환율로 환산.
+    """
+    coin_type: str
+    market_cap_usd: float
+    circulating_supply: float
+    price_usd: float
+    accumulation_deposit_amt: float
+    purity_deposit: int
+    number_of_holders: int
+    holding_percentage: int
+    bithumb_timestamp: str
+    coingecko_updated_at: str
 
 
 def history_rows(index_path: Path, history_path: Path) -> dict[str, Row]:
@@ -130,6 +149,56 @@ def apply_live(row: Row, metric: live.LiveMetric, fx_usd_krw: float) -> None:
     })
 
 
+def apply_suspended(row: Row, data: SuspendedData, fx_usd_krw: float) -> None:
+    coin = row["coin"]
+    if not isinstance(coin, str):
+        raise live.LiveSourceError("suspended 행 coin 문자열 누락")
+    positive = {
+        "market_cap_usd": data.market_cap_usd,
+        "circulating_supply": data.circulating_supply,
+        "price_usd": data.price_usd,
+        "fx_usd_krw": fx_usd_krw,
+    }
+    for name, value in positive.items():
+        if not math.isfinite(float(value)) or value <= 0:
+            raise live.LiveSourceError(f"{coin}: {name}가 유한한 양수가 아님")
+    for name, value in {
+        "accumulation_deposit_amt": data.accumulation_deposit_amt,
+        "number_of_holders": data.number_of_holders,
+    }.items():
+        if not math.isfinite(float(value)) or value < 0:
+            raise live.LiveSourceError(f"{coin}: {name}가 유한한 음이 아닌 값이 아님")
+    if not 0 <= data.holding_percentage <= 100:
+        raise live.LiveSourceError(f"{coin}: holding_percentage가 0..100 값이 아님")
+    validate_timestamp(data.bithumb_timestamp, BITHUMB_TIMESTAMP, "Bithumb")
+    validate_timestamp(data.coingecko_updated_at, COINGECKO_TIMESTAMP, "CoinGecko")
+    price_krw = data.price_usd * fx_usd_krw
+    internal_value = round(data.accumulation_deposit_amt * price_krw)
+    row.update({
+        "mc": data.market_cap_usd, "mc_fmt": base.fmt_mc(data.market_cap_usd),
+        "internal_value": internal_value, "iv_fmt": base.fmt_krw(internal_value),
+        "cum_deposit": round(data.accumulation_deposit_amt),
+        "net_deposit": data.purity_deposit, "holders": data.number_of_holders,
+        "hold_pct": data.holding_percentage, "trade_pct": None,
+        "iv_mc_ratio": round(internal_value / (data.market_cap_usd * fx_usd_krw) * 100, 1),
+        "bithumb_ratio": data.accumulation_deposit_amt / data.circulating_supply,
+        "bithumb_code": data.coin_type, "price_krw": price_krw,
+        "as_of": data.bithumb_timestamp[:10], "mc_as_of": data.coingecko_updated_at,
+        "bithumb_as_of": data.bithumb_timestamp,
+        "live_status": "partial",
+        "source_provenance": (
+            "Bithumb accumulation/purity/holders/holder-share + CoinGecko markets"
+            " (거래지원종료 — observer 시세 없음)"
+        ),
+        "source_errors": "",
+        "data_note": (
+            f"빗썸 거래지원종료 종목(출금만 가능) — KRW 시세 없음: 가격은 CoinGecko USD×환율 환산, "
+            f"고래거래(trade_pct) 데이터 없음. {data.bithumb_timestamp} KST Bithumb 내부지표 + "
+            f"{data.coingecko_updated_at} CoinGecko MC."
+        ),
+    })
+
+
 def validate_rows(rows: list[Row]) -> None:
     if [row.get("coin") for row in rows] != OFFICIAL_SYMBOLS:
         raise live.LiveSourceError("공지 순서 또는 종목 수 불일치")
@@ -150,21 +219,30 @@ def build_rows(
     fx_usd_krw: float | None = None,
     source_errors: dict[str, str] | None = None,
     fetched_at: str | None = None,
+    suspended: dict[str, SuspendedData] | None = None,
 ) -> list[Row]:
     if live_metrics is None:
         fetched = fetch_current()
         live_metrics, fx_usd_krw = fetched.metrics, fetched.fx_usd_krw
         source_errors, fetched_at = fetched.errors, fetched.fetched_at
+        suspended = fetched.suspended
     timestamp = fetched_at or datetime.now(UTC).astimezone().isoformat(timespec="seconds")
     errors = source_errors or {}
+    suspended_data = suspended or {}
     legacy_by_symbol = history_rows(index_path, history_path)
     rows: list[Row] = []
     for symbol in OFFICIAL_SYMBOLS:
         row = empty_row(symbol, legacy_by_symbol.get(symbol), timestamp)
         metric = live_metrics.get(symbol)
+        susp = suspended_data.get(symbol)
         if metric is not None and fx_usd_krw is not None:
             try:
                 apply_live(row, metric, fx_usd_krw)
+            except (live.LiveSourceError, base.BuildError, OverflowError, ValueError) as exc:
+                row["source_errors"] = str(exc)
+        elif susp is not None and fx_usd_krw is not None:
+            try:
+                apply_suspended(row, susp, fx_usd_krw)
             except (live.LiveSourceError, base.BuildError, OverflowError, ValueError) as exc:
                 row["source_errors"] = str(exc)
         elif symbol in errors:
@@ -193,7 +271,8 @@ def fetch_current() -> FetchResult:
     fetched_at = datetime.now(UTC).astimezone().isoformat(timespec="seconds")
     errors: dict[str, str] = {}
     try:
-        coin_types = live.fetch_coin_type_map(OFFICIAL_SYMBOLS)
+        coin_states = live.fetch_coin_states(OFFICIAL_SYMBOLS)
+        coin_types = {symbol: state[0] for symbol, state in coin_states.items()}
         tickers = live.fetch_observer_tickers()
         fx_usd_krw: float | None = live.fetch_fx_usd_krw()
     except live.LiveSourceError as exc:
@@ -201,9 +280,18 @@ def fetch_current() -> FetchResult:
         return FetchResult({}, None, errors, fetched_at)
     markets, market_error = fetch_markets()
     metrics: dict[str, live.LiveMetric] = {}
+    suspended: dict[str, SuspendedData] = {}
     for symbol in OFFICIAL_SYMBOLS:
         ticker = tickers.get(coin_types[symbol])
         market = markets.get(GECKO_ID[symbol])
+        if ticker is None and market is not None and not coin_states[symbol][1]:
+            # intro isLive=false 확정 거래지원종료 — 내부지표 + CoinGecko로 부분 보강.
+            # isLive=true인데 ticker만 없으면 observer 일시 누락이므로 아래 누락 경로 유지.
+            try:
+                suspended[symbol] = fetch_suspended(symbol, coin_types[symbol], market)
+            except (live.LiveSourceError, ValueError) as exc:
+                errors[symbol] = f"거래지원종료 부분수집 실패: {exc}"
+            continue
         if ticker is None or market is None:
             reasons = (["Bithumb observer ticker 누락"] if ticker is None else [])
             if market is None:
@@ -239,7 +327,32 @@ def fetch_current() -> FetchResult:
             )
         except (live.LiveSourceError, ValueError) as exc:
             errors[symbol] = str(exc)
-    return FetchResult(metrics, fx_usd_krw, errors, fetched_at)
+    return FetchResult(metrics, fx_usd_krw, errors, fetched_at, suspended)
+
+
+def fetch_suspended(
+    symbol: str, coin_type: str, market: dict[str, live.JsonValue]
+) -> SuspendedData:
+    acc = live.fetch_metric_data(
+        f"/v1/trade/accumulation/deposit/{coin_type}-{live.MARKET_KRW}", symbol
+    )
+    purity = live.fetch_metric_data(
+        f"/v1/trade/purity/deposit/{coin_type}-{live.MARKET_KRW}", symbol
+    )
+    holders = live.fetch_metric_data(f"/v1/trade/holders/{coin_type}", symbol)
+    holder_share = live.fetch_metric_data(f"/v1/trade/top/holder/share/{coin_type}", symbol)
+    return SuspendedData(
+        coin_type=coin_type,
+        market_cap_usd=live.number_value(market.get("market_cap"), symbol),
+        circulating_supply=live.number_value(market.get("circulating_supply"), symbol),
+        price_usd=live.number_value(market.get("current_price"), symbol),
+        accumulation_deposit_amt=live.number_value(acc.get("accumulationDepositAmt"), symbol),
+        purity_deposit=live.int_value(purity.get("purityDeposit"), symbol),
+        number_of_holders=live.int_value(holders.get("numberOfHolders"), symbol),
+        holding_percentage=live.int_value(holder_share.get("holdingPercentage"), symbol),
+        bithumb_timestamp=live.text_value(acc.get("timestamp"), symbol),
+        coingecko_updated_at=live.text_value(market.get("last_updated"), symbol),
+    )
 
 
 def inline_json(rows: list[Row]) -> str:
@@ -277,9 +390,12 @@ def main() -> None:
     rows = build_rows()
     write_outputs(rows)
     complete = sum(row["live_status"] == "complete" for row in rows)
-    print(f"BNB28 {len(rows)}종 저장 · live complete {complete}/28")
+    partial = sum(row["live_status"] == "partial" for row in rows)
+    print(f"BNB28 {len(rows)}종 저장 · live complete {complete}/28 · partial(거래지원종료) {partial}")
     for row in rows:
-        if row["live_status"] != "complete":
+        if row["live_status"] == "partial":
+            print(f"{row['coin']}: partial — {row['data_note']}")
+        elif row["live_status"] != "complete":
             print(f"{row['coin']}: {row['source_errors']}")
 
 

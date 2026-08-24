@@ -116,21 +116,30 @@ def fetch_json(url: str, context: str, retries: int = 3) -> JsonValue:
     raise LiveSourceError(f"{context}: API 호출 실패")
 
 
-def fetch_coin_type_map(symbols: list[str]) -> dict[str, str]:
+def fetch_coin_states(symbols: list[str]) -> dict[str, "tuple[str, bool]"]:
+    """symbols → {symbol: (coinType, isLive)}. isLive=False는 거래지원종료(시세 없음).
+
+    intro의 isLive가 명시적 False일 때만 종료로 판정 — 필드 결측/비bool은 생존 취급
+    (오분류 시 "출금만 가능" 오정보가 나가므로 보수적으로).
+    """
     payload = fetch_json(f"{BITHUMB_GW}/exchange/v1/comn/intro", "Bithumb intro")
     data = read_response_data(payload, "Bithumb intro")
     coin_list = json_array(data.get("coinList"), "Bithumb intro.coinList")
-    by_symbol: dict[str, str] = {}
+    by_symbol: dict[str, tuple[str, bool]] = {}
     for raw_coin in coin_list:
         coin = json_object(raw_coin, "Bithumb intro.coin")
         symbol = coin.get("coinSymbol")
         coin_type = coin.get("coinType")
         if isinstance(symbol, str) and isinstance(coin_type, str):
-            by_symbol[symbol] = coin_type
+            by_symbol[symbol] = (coin_type, coin.get("isLive") is not False)
     missing = [symbol for symbol in symbols if symbol not in by_symbol]
     if missing:
         raise LiveSourceError(f"Bithumb coinType 누락: {missing}")
     return {symbol: by_symbol[symbol] for symbol in symbols}
+
+
+def fetch_coin_type_map(symbols: list[str]) -> dict[str, str]:
+    return {symbol: state[0] for symbol, state in fetch_coin_states(symbols).items()}
 
 
 def fetch_fx_usd_krw() -> float:
