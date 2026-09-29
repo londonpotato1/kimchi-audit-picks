@@ -5,3 +5,4 @@ data_base*.js.txt
 .omc/
 .oh-no/
 index.html.bak_*
+__pycache__/
