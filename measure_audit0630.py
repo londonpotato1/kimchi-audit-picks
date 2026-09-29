@@ -3,7 +3,7 @@
 # requires-python = ">=3.13"
 # dependencies = []
 # ///
-"""6/30 정기실사 입출금 중지 구간 김프 실측 — 빗썸·업비트 각각.
+"""정기실사 입출금 중지 구간 김프 실측 — 빗썸·업비트 각각. `--event=0630`(기본) / `--event=0331`.
 
 김프(%) = 국내 KRW 1h 종가 / (해외 USDT 1h 종가 × 같은 거래소 USDT/KRW 1h 종가) × 100 − 100
 - 종가 기준 (저유동 알트의 순간 윅 제외), 중지 구간만 측정 (재개 후 제외)
@@ -15,7 +15,8 @@
 - 국내 호가 한 칸이 가격의 2% 초과인 초저가 코인은 김프가 호가단위 허수라 제외.
 - Δ = 중지 구간 최대 김프 − 직전 24h 평균 김프. 최대−평균이라 잡음만으로도 양수가 나오므로
   `--control` 로 하루 전 같은 시간대(평상시)를 같은 방식으로 재서 비교한다.
-출력: audit_0630_premium.json / audit_0630_control.json (성공분 보존, 재실행 시 실패분만 재측정)
+입력: data_D_{event}.json (그 실사 직전 대시보드 스냅샷 — 측정 대상 종목)
+출력: audit_{event}_premium.json / audit_{event}_control.json (성공분 보존, 재실행 시 실패분만 재측정)
 """
 import datetime as dt
 import json
@@ -30,16 +31,24 @@ from build_audit0930_ids import get, krw_markets
 DIR = Path(__file__).resolve().parent
 KST = dt.timezone(dt.timedelta(hours=9))
 H = 3600
-# 캔들 시작 시각 기준 [start, end). 빗썸 공지 1653832 17:00~03:00.
-# 업비트 공지 6320 20:00~08:00 예정, 순차 재개 후 06:55 완료 — 재개 시작 시각을 몰라 05:00 에서 자름.
-AUDIT = {
-    "bithumb": (dt.datetime(2026, 6, 30, 17, tzinfo=KST), dt.datetime(2026, 7, 1, 3, tzinfo=KST)),
-    "upbit": (dt.datetime(2026, 6, 30, 20, tzinfo=KST), dt.datetime(2026, 7, 1, 5, tzinfo=KST)),
+# 캔들 시작 시각 기준 [start, end). 업비트는 "순차 재개" 시작 시각을 몰라 재개 완료 시각보다
+# 한 시간 이상 앞 정시에서 자름 (06:55 완료 → 05:00, 05:15 완료 → 04:00).
+AUDITS = {
+    # 빗썸 공지 1653832 17:00~03:00 · 업비트 공지 6320 20:00~08:00 예정, 06:55 재개 완료
+    "0630": {"bithumb": (dt.datetime(2026, 6, 30, 17, tzinfo=KST), dt.datetime(2026, 7, 1, 3, tzinfo=KST)),
+             "upbit": (dt.datetime(2026, 6, 30, 20, tzinfo=KST), dt.datetime(2026, 7, 1, 5, tzinfo=KST))},
+    # 빗썸 공지 1652422 17:00~03:00 · 업비트 공지 6090 20:00~08:00 예정, 05:15 재개 완료
+    "0331": {"bithumb": (dt.datetime(2026, 3, 31, 17, tzinfo=KST), dt.datetime(2026, 4, 1, 3, tzinfo=KST)),
+             "upbit": (dt.datetime(2026, 3, 31, 20, tzinfo=KST), dt.datetime(2026, 4, 1, 4, tzinfo=KST))},
 }
+if "--event" in sys.argv:  # 띄어 쓰면 조용히 기본값(0630)으로 돌아 그 결과 파일을 건드리게 됨
+    raise SystemExit("--event=0331 처럼 = 로 붙여 쓰세요")
+EVENT = next((a.split("=", 1)[1] for a in sys.argv if a.startswith("--event=")), "0630")
+AUDIT = AUDITS[EVENT]
 CONTROL = "--control" in sys.argv
 SHIFT = dt.timedelta(hours=24 if CONTROL else 0)
 EVENTS = {ex: (s - SHIFT, e - SHIFT) for ex, (s, e) in AUDIT.items()}
-OUT = DIR / ("audit_0630_control.json" if CONTROL else "audit_0630_premium.json")
+OUT = DIR / f"audit_{EVENT}_{'control' if CONTROL else 'premium'}.json"
 G_FROM = int(min(s for s, _ in EVENTS.values()).timestamp()) - 24 * H
 G_TO = int(max(e for _, e in EVENTS.values()).timestamp()) + H
 MAX_BASELINE = 15.0
@@ -130,7 +139,7 @@ def tick_ratio(dom: dict[int, float]) -> float:
 
 
 def main() -> None:
-    before = json.loads((DIR / "data_D_0630.json").read_text())
+    before = json.loads((DIR / f"data_D_{EVENT}.json").read_text())  # 그 실사 직전 대시보드 스냅샷
     gecko = json.loads((DIR / "gecko_map.json").read_text())
     universe_file = DIR / "audit0930_universe.json"
     if universe_file.exists():  # 0단계 가격 대조 통과 ID 우선
@@ -187,7 +196,7 @@ def main() -> None:
         src: dict[str, int] = {}
         for r in ok:
             src[r["source"]] = src.get(r["source"], 0) + 1
-        label = "평상시 대조(하루 전)" if CONTROL else "6/30 실사"
+        label = f"{EVENT} " + ("평상시 대조(하루 전)" if CONTROL else "실사")
         print(f"\n=== {ex} {label} Δ김프 상위 15 (성공 {len(ok)}/{len(targets[ex])}, 소스 {src}) ===")
         for r in ok[:15]:
             print(f"  {r['coin']:8} base {r['baseline']:6.2f}  max {r['max_prem']:6.2f} @{r['max_time']}  Δ {r['delta']:6.2f}  [{r['source']}]")

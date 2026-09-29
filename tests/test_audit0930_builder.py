@@ -152,9 +152,11 @@ def test_choose_uses_coingecko_only_when_no_exchange_pair() -> None:
     assert r["source"] == "coingecko" and r["delta"] == 0.0
 
 
-def test_upbit_window_stops_before_sequential_reopen() -> None:
-    start, end = m.AUDIT["upbit"]
-    assert (start.hour, end.hour) == (20, 5)
+def test_audit_windows_match_notices_and_stop_before_upbit_reopen() -> None:
+    hours = {ev: {ex: (s.hour, e.hour) for ex, (s, e) in w.items()} for ev, w in m.AUDITS.items()}
+    assert hours["0630"] == {"bithumb": (17, 3), "upbit": (20, 5)}  # 업비트 06:55 재개 완료
+    assert hours["0331"] == {"bithumb": (17, 3), "upbit": (20, 4)}  # 업비트 05:15 재개 완료
+    assert m.EVENT == "0630" and m.OUT.name == "audit_0630_premium.json"
 
 
 def test_tick_ratio_flags_sub_cent_coins_only() -> None:
@@ -186,9 +188,12 @@ def test_index_audit_tab_is_default_and_wired() -> None:
         assert upbit_sym not in by
         assert by[bithumb_sym]["on_upbit"] and by[bithumb_sym]["upbit_symbol"] == upbit_sym
     head = html[html.index("<thead>"):html.index("</thead>")]
-    assert head.count('class="r aud"') == 3
-    assert html.count("deltaCell(r.a0630_") == 2 and "'<td class=\"r aud\">'+up+'</td>'" in html
-    assert "if(isAudit)document.getElementById('fSort').value='iv';" in html  # 9/30 탭 기본 = 내부가치 낮은순
+    assert head.count('class="r aud"') == 4  # 업비트비중 · 3/31 빗썸Δ · 6/30 빗썸Δ · 6/30 업비트Δ
+    assert head.count('class="r nonaud"') == 2  # 3/31 월간 최대김프(봇) · 5/28 입출막 → 9/30 탭에서 숨김
+    assert html.count("deltaCell(r.a0630_") == 2 and html.count("deltaCell(r.a0331_") == 1
+    assert "'<td class=\"r aud\">'+up+'</td>'" in html
+    # 9/30 탭 기본 = 시총 작은 순 (3/31·6/30 백테스트에서 가장 안정)
+    assert "if(isAudit)document.getElementById('fSort').value='mc';" in html
     assert "t.innerHTML+=" not in html  # 행마다 표 전체 재파싱 → 476행 6.4초 (2026-09-29 실측)
     assert "rowsHtml.join('')" in html
 

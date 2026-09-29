@@ -6,7 +6,7 @@
 """9/30 정기실사 탭 데이터 (D_AUDIT0930) — 빗썸 KRW ∪ 업비트 KRW 전수.
 
 입력: audit0930_universe.json (가격 대조 검증된 CoinGecko ID·시총·유통량),
-      upbit_report_0701.json (업비트 7/1 실사보고서 고객 위탁량), audit_0630_premium.json (6/30 실측)
+      upbit_report_0701.json (업비트 7/1 실사보고서 고객 위탁량), audit_{0630,0331}_premium.json (실사 실측)
 라이브: 빗썸 gw 내부지표 5종 (build_bnb28 과 같은 경로·공식, base.apply_live_metric 재사용)
 이력: 점수·갭·과거 실사(25.9/30, 12/31, 3/31)는 6/30 탭 D(없으면 data_D_0630) 에서 승계
 """
@@ -36,6 +36,7 @@ def empty_row(u: dict) -> Row:
         "prev_0930": None, "prev_max": None, "audit_0331": None,
         "a0630_bt": None, "a0630_bt_max": None, "a0630_bt_time": None, "a0630_bt_src": None,
         "a0630_up": None, "a0630_up_max": None, "a0630_up_time": None, "a0630_up_src": None,
+        "a0331_bt": None, "a0331_bt_max": None, "a0331_bt_time": None, "a0331_bt_src": None,
         "upbit_qty": None, "upbit_ratio": None, "upbit_value": None,
         "upbit_symbol": u["coin"] if u["on_upbit"] else None,
         "on_bithumb": u["on_bithumb"], "on_upbit": u["on_upbit"], "stable": u["stable"],
@@ -91,8 +92,8 @@ def fill_bithumb(row: Row, u: dict, coin_type: str, ticker: dict | None, fx: flo
 def build_rows() -> list[Row]:
     universe = json.loads((DIR / "audit0930_universe.json").read_text())
     upbit_qty: dict[str, int] = json.loads((DIR / "upbit_report_0701.json").read_text())
-    meas = {(r["exchange"], r["coin"]): r for r in json.loads((DIR / "audit_0630_premium.json").read_text())
-            if "delta" in r}
+    meas = {(event, r["exchange"], r["coin"]): r for event in ("0630", "0331")
+            for r in json.loads((DIR / f"audit_{event}_premium.json").read_text()) if "delta" in r}
     history = {r["coin"]: r for r in json.loads((DIR / "data_D_0630.json").read_text())}
     history.update({str(r["coin"]): r for r in base.parse_const_array((DIR / "index.html").read_text(), "D")})
     bithumb_syms = [u["coin"] for u in universe if u["on_bithumb"]]
@@ -117,7 +118,8 @@ def build_rows() -> list[Row]:
         if coin in history:
             row.update({k: history[coin].get(k) for k in HISTORY})
             row["history_note"] = "점수·갭·과거 실사는 6/30 탭 이력 승계"
-        for key, prefix in ((("bithumb", coin), "a0630_bt"), (("upbit", up_sym), "a0630_up")):
+        for key, prefix in ((("0630", "bithumb", coin), "a0630_bt"), (("0630", "upbit", up_sym), "a0630_up"),
+                            (("0331", "bithumb", coin), "a0331_bt")):
             m = meas.get(key)
             if m:
                 row.update({prefix: m["delta"], f"{prefix}_max": m["max_prem"],
