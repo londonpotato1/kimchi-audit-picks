@@ -188,6 +188,7 @@ def test_index_audit_tab_is_default_and_wired() -> None:
     head = html[html.index("<thead>"):html.index("</thead>")]
     assert head.count('class="r aud"') == 3
     assert html.count("deltaCell(r.a0630_") == 2 and "'<td class=\"r aud\">'+up+'</td>'" in html
+    assert "if(isAudit)document.getElementById('fSort').value='iv';" in html  # 9/30 탭 기본 = 내부가치 낮은순
     assert "t.innerHTML+=" not in html  # 행마다 표 전체 재파싱 → 476행 6.4초 (2026-09-29 실측)
     assert "rowsHtml.join('')" in html
 

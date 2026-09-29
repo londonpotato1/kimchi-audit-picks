@@ -265,7 +265,9 @@ else if(st==='iv'){F.sort((a,b)=>asc(a.internal_value,b.internal_value))}
 else{F.sort((a,b)=>desc(a.score,b.score))}
 render(F)}
 function resetFilter(){['fGap','fMC','fScore','fBR','fWhale','fRatio','fIV','fSort'].forEach(id=>document.getElementById(id).selectedIndex=0);
-F=[...CUR];F.sort((a,b)=>desc(a.score,b.score));render(F)}
+if(isAudit)document.getElementById('fSort').value='iv';
+sortKeys=[isAudit?{key:'internal_value',dir:1}:{key:'score',dir:-1}];
+F=[...CUR];F.sort(isAudit?(a,b)=>asc(a.internal_value,b.internal_value):(a,b)=>desc(a.score,b.score));render(F)}
 function renderStats(d){
 const t=d.length,gy=d.filter(r=>r.has_gap===true).length,gn=d.filter(r=>r.has_gap===false).length,h6=d.filter(r=>(r.score||0)>=60).length,b8=d.filter(r=>(r.bithumb_ratio||0)>=0.8).length;
 let mb={},ms=d[0]||{};d.forEach(r=>{if((r.bithumb_ratio||0)>(mb.bithumb_ratio||0)&&r.bithumb_ratio<=1)mb=r;if((r.score||0)>(ms.score||0))ms=r});
