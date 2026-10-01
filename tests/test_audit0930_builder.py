@@ -157,7 +157,7 @@ def test_measure_reports_pre_freeze_spike_separately() -> None:
 
     assert r is not None and r["delta"] < 1  # 중지 구간에는 펌핑 없음
     assert r["pre_delta"] == round(20 - 20 / 24, 2)
-    assert r["pre_time"].endswith(f"{(start - dt.timedelta(hours=1)).hour:02d}시")
+    assert r["pre_time"].endswith(f"{(start - dt.timedelta(hours=1)).hour:02d}:00")
 
 
 def test_measure_reports_reverse_gap_low_inside_window_only() -> None:
@@ -173,7 +173,7 @@ def test_measure_reports_reverse_gap_low_inside_window_only() -> None:
 
     assert r is not None and r["min_prem"] == -40.0
     assert r["rev_delta"] == round(-40 - (-50 / 24), 2)
-    assert r["min_time"].endswith(f"{(start + dt.timedelta(hours=5)).hour:02d}시")
+    assert r["min_time"].endswith(f"{(start + dt.timedelta(hours=5)).hour:02d}:00")
 
 
 def test_measure_rejects_mismatched_overseas_pair_and_sparse_series() -> None:
@@ -186,29 +186,28 @@ def test_measure_rejects_mismatched_overseas_pair_and_sparse_series() -> None:
     assert m.measure("bithumb", dom, fx, hourly(pre, 20, 1.0)) is None  # 중지 구간 해외가 없음
 
 
-def test_choose_does_not_fall_back_to_coingecko_after_exchange_baseline_guard() -> None:
+def test_choose_reports_baseline_guard_when_no_exchange_pair_passes() -> None:
     start, _ = m.EVENTS["bithumb"]
     pre = start - dt.timedelta(hours=24)
     fx = hourly(pre, 40, 1400.0)
     dom = hourly(pre, 40, 1400.0 * 1.3)  # 이미 +30% 격리 고김프 (TAIKO 6/30)
-    cg_contaminated = hourly(pre, 40, 1.25)  # 국내가가 섞인 평균 → 기준선 통과해 가짜 Δ 를 만듦
-    series = {"binance": {}, "gate": hourly(pre, 40, 1.0), "coingecko": cg_contaminated}
+    series = {"binance": {}, "gate": hourly(pre, 40, 1.0)}
 
-    r = m.choose("bithumb", dom, fx, series.get, ("binance", "gate", "coingecko"))
+    r = m.choose("bithumb", dom, fx, series.get, ("binance", "gate"))
 
     assert "delta" not in r and "gate +30.0%" in r["err"]
 
 
-def test_choose_uses_coingecko_only_when_no_exchange_pair() -> None:
+def test_choose_falls_back_to_gate_when_no_binance_pair() -> None:
     start, _ = m.EVENTS["bithumb"]
     pre = start - dt.timedelta(hours=24)
     fx = hourly(pre, 40, 1400.0)
     dom = hourly(pre, 40, 1400.0)
-    series = {"binance": {}, "gate": {}, "coingecko": hourly(pre, 40, 1.0)}
+    series = {"binance": {}, "gate": hourly(pre, 40, 1.0)}
 
-    r = m.choose("bithumb", dom, fx, series.get, ("binance", "gate", "coingecko"))
+    r = m.choose("bithumb", dom, fx, series.get, ("binance", "gate"))
 
-    assert r["source"] == "coingecko" and r["delta"] == 0.0
+    assert r["source"] == "gate" and r["delta"] == 0.0
 
 
 def test_audit_windows_match_notices_and_stop_before_upbit_reopen() -> None:
@@ -238,6 +237,8 @@ def test_perp_fetchers_handle_1000_prefix_missing_symbol_and_pros_alias(monkeypa
     m.binance_perp("PROS")
     m.bybit_perp("PROS")
     assert "symbol=PHAROSUSDT" in calls[-2] and "symbol=PHAROSUSDT" in calls[-1]  # 바이낸스·바이비트 무기한만 PHAROS
+    assert m.bybit("PEPE") == {} and "category=spot" in calls[-1]  # 현물은 접두·별칭 없이 그대로, 없는 심볼 = 빈값
+    assert m.bybit("POPCAT") == {7200: 4.25, 3600: 4.20} and "symbol=POPCATUSDT" in calls[-1]
 
 
 def test_tick_ratio_flags_sub_cent_coins_only() -> None:

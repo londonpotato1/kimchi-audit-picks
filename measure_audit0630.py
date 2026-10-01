@@ -5,13 +5,13 @@
 # ///
 """정기실사 입출금 중지 구간 김프 실측 — 빗썸·업비트 각각. `--event=0630`(기본) / `--event=0331` / `--event=0930`.
 
-김프(%) = 국내 KRW 1h 종가 / (해외 USDT 1h 종가 × 같은 거래소 USDT/KRW 1h 종가) × 100 − 100
-- 종가 기준 (저유동 알트의 순간 윅 제외), 중지 구간만 측정 (재개 후 제외)
-- 해외 기준가: 바이낸스 현물 → Gate 현물 → CoinGecko(검증 ID). CoinGecko 가중평균은 국내 비중이 큰
-  코인에서 국내가에 끌려 김프를 작게 잡음 (HOOK 6/30 실측 ~1%p) → 거래소 실거래 종가 우선.
+김프(%) = 국내 KRW 15분봉 종가 / (해외 USDT 15분봉 종가 × 같은 거래소 USDT/KRW 15분봉 종가) × 100 − 100
+- 15분봉 종가 (2026-10-01 1시간봉에서 전환 — 1시간 안에 꺼지는 급등·급락을 1시간 종가가 놓침:
+  9/30 PROS 업비트 역현선 1h −2.2%p vs 15m −5.7%p), 중지 구간만 측정 (재개 후 제외)
+- 해외 기준가: 바이낸스 현물 → Gate 현물 → 바이비트 현물 (거래소 실거래 종가만). Gate 15분봉은 최근 10000개
+  (~104일)까지만 줘서 3/31 은 바이비트로 넘어감. CoinGecko 는 15분 시세가 없어 쓰지 않음 — 해외 거래소 페어가
+  없는 코인은 측정 제외.
 - 직전 24h 평균 김프가 ±15% 밖이면 그 거래소 페어는 버림 (동명이인 또는 이미 격리된 고김프).
-  이때 CoinGecko 로 우회하지 않음 — 국내가가 섞인 평균이라 Δ 가 조작됨 (TAIKO: CG +14.8%p vs Gate −0.3%p).
-  CoinGecko 는 거래소 페어가 없거나 해당 구간 데이터가 모자랄 때만.
 - 국내 호가 한 칸이 가격의 2% 초과인 초저가 코인은 김프가 호가단위 허수라 제외.
 - pre_delta = 중지 직전 3시간 최대 김프 − 같은 기준선 (중지 직전에 튀고 중지와 함께 꺼지는 펌핑 포착).
 - Δ = 중지 구간 최대 김프 − 직전 24h 평균 김프. 최대−평균이라 잡음만으로도 양수가 나오므로
@@ -57,9 +57,8 @@ FUTURES = "--futures" in sys.argv
 SHIFT = dt.timedelta(hours=24 if CONTROL else 0)
 EVENTS = {ex: (s - SHIFT, e - SHIFT) for ex, (s, e) in AUDIT.items()}
 OUT = DIR / f"audit_{EVENT}_{'futures_' if FUTURES else ''}{'control' if CONTROL else 'premium'}.json"
-# 역현선은 15분봉 — 1시간 안에 회복하는 저점을 1시간 종가가 놓침 (9/30 PROS 업비트 1h −2.2%p vs 15m −5.6%p)
-STEP_MIN = 15 if FUTURES else 60
-TIME_FMT = "%m-%d %H:%M" if FUTURES else "%m-%d %H시"
+STEP_MIN = 15
+TIME_FMT = "%m-%d %H:%M"
 PERP_ALIAS = {"PROS": "PHAROS"}  # 바이낸스·바이비트 무기한만 PHAROSUSDT (바이낸스 현물 PROS = 옛 Prosper, 2026-09-30 실측)
 G_FROM = int(min(s for s, _ in EVENTS.values()).timestamp()) - 24 * H
 G_TO = int(max(e for _, e in EVENTS.values()).timestamp()) + H
@@ -84,14 +83,20 @@ def domestic(exchange: str, sym: str) -> dict[int, float]:
 
 
 def binance(sym: str) -> dict[int, float]:
-    kl = get(f"https://api.binance.com/api/v3/klines?symbol={sym}USDT&interval=1h"
-             f"&startTime={G_FROM * 1000}&endTime={G_TO * 1000}&limit=100")
+    kl = get(f"https://api.binance.com/api/v3/klines?symbol={sym}USDT&interval=15m"
+             f"&startTime={G_FROM * 1000}&endTime={G_TO * 1000}&limit=200")
     return {int(k[0]) // 1000: float(k[4]) for k in kl}
 
 
 def gate(sym: str) -> dict[int, float]:
-    kl = get(f"https://api.gateio.ws/api/v4/spot/candlesticks?currency_pair={sym}_USDT&interval=1h&from={G_FROM}&to={G_TO}")
+    kl = get(f"https://api.gateio.ws/api/v4/spot/candlesticks?currency_pair={sym}_USDT&interval=15m&from={G_FROM}&to={G_TO}")
     return {int(k[0]): float(k[2]) for k in kl}
+
+
+def bybit(sym: str) -> dict[int, float]:
+    j = get(f"https://api.bybit.com/v5/market/kline?category=spot&symbol={sym}USDT"
+            f"&interval=15&start={G_FROM * 1000}&end={G_TO * 1000}&limit=200")
+    return {int(k[0]) // 1000: float(k[4]) for k in j["result"]["list"]} if j.get("retCode") == 0 else {}
 
 
 def binance_perp(sym: str) -> dict[int, float]:
@@ -121,18 +126,6 @@ def gate_perp(sym: str) -> dict[int, float]:
     return {int(k["t"]): float(k["c"]) for k in kl}
 
 
-def coingecko(gid: str) -> dict[int, float]:
-    pts = get(f"https://api.coingecko.com/api/v3/coins/{quote(gid)}/market_chart/range"
-              f"?vs_currency=usd&from={G_FROM}&to={G_TO + H}")["prices"]
-    time.sleep(13)  # 무료 한도 (2026-09-29 403/429 실측)
-    out: dict[int, float] = {}
-    for ts_ms, price in pts:  # 캔들 종료 시각(h+1h)에 가장 가까운 점(±30분)을 그 캔들의 종가로
-        end = round(ts_ms / 1000 / H) * H
-        if abs(ts_ms / 1000 - end) <= 1800:
-            out[end - H] = float(price)
-    return out
-
-
 def measure(exchange: str, dom: dict[int, float], fx: dict[int, float], glob: dict[int, float]) -> dict | float | None:
     """성공 → 결과 dict, 기준 김프 과대 → 그 기준 김프(float), 데이터 부족 → None."""
     start, end = (int(t.timestamp()) for t in EVENTS[exchange])
@@ -141,6 +134,7 @@ def measure(exchange: str, dom: dict[int, float], fx: dict[int, float], glob: di
     win = [(h, p) for h, p in prem.items() if start <= h < end]
     dom_base = sum(1 for h in dom if start - 24 * H <= h < start)
     dom_win = sum(1 for h in dom if start <= h < end)
+    # 최소 관측 개수 (기준선 6개·구간 3개) + 국내 캔들 대비 해외·환율 짝 70% — 저유동 코인은 15분봉이 듬성듬성
     if len(base) < max(6, 0.7 * dom_base) or len(win) < max(3, 0.7 * dom_win):
         return None
     baseline = sum(base) / len(base)
@@ -148,7 +142,7 @@ def measure(exchange: str, dom: dict[int, float], fx: dict[int, float], glob: di
         return baseline
     peak_h, peak = max(win, key=lambda x: x[1])
     low_h, low = min(win, key=lambda x: x[1])
-    # 실사 직전 3시간 — 중지 직전에 튀고 중지와 함께 꺼지는 펌핑 (O 9/30 16시 +16.0%p)
+    # 실사 직전 3시간 — 중지 직전에 튀고 중지와 함께 꺼지는 펌핑 (O 9/30 16:45 +16.4%p)
     pre = [(h, p) for h, p in prem.items() if start - PRE_HOURS * H <= h < start]
     pre_h, pre_p = max(pre, key=lambda x: x[1]) if pre else (None, None)
     return {
@@ -160,15 +154,13 @@ def measure(exchange: str, dom: dict[int, float], fx: dict[int, float], glob: di
         "pre_time": dt.datetime.fromtimestamp(pre_h, KST).strftime(TIME_FMT) if pre else None,
         "min_prem": round(low, 2), "rev_delta": round(low - baseline, 2),
         "min_time": dt.datetime.fromtimestamp(low_h, KST).strftime(TIME_FMT),
-        "n_base": len(base), "n_win": len(win), "dom_win_hours": dom_win,
+        "n_base": len(base), "n_win": len(win),
     }
 
 
 def choose(exchange: str, dom: dict[int, float], fx: dict[int, float], series, sources) -> dict:
     guards: list[str] = []
     for source in sources:
-        if source == "coingecko" and guards:
-            break
         m = measure(exchange, dom, fx, series(source))
         if isinstance(m, dict):
             return {"source": source} | m
@@ -188,15 +180,8 @@ def tick_ratio(dom: dict[int, float]) -> float:
 
 def main() -> None:
     before = json.loads((DIR / f"data_D_{EVENT}.json").read_text())  # 그 실사 직전 대시보드 스냅샷
-    gecko = json.loads((DIR / "gecko_map.json").read_text())
-    universe_file = DIR / "audit0930_universe.json"
-    if universe_file.exists():  # 0단계 가격 대조 통과 ID 우선
-        gecko.update({u["coin"]: u["gecko_id"] for u in json.loads(universe_file.read_text()) if u["gecko_id"]})
-    if FUTURES:
-        sources = ("binance_perp", "bybit_perp", "gate_perp")
-    else:
-        sources = ("binance", "gate") if "--no-coingecko" in sys.argv else ("binance", "gate", "coingecko")
-    fetchers = {"binance": binance, "gate": gate, "binance_perp": binance_perp, "bybit_perp": bybit_perp,
+    sources = ("binance_perp", "bybit_perp", "gate_perp") if FUTURES else ("binance", "gate", "bybit")
+    fetchers = {"binance": binance, "gate": gate, "bybit": bybit, "binance_perp": binance_perp, "bybit_perp": bybit_perp,
                 "gate_perp": gate_perp}
     targets = {
         "bithumb": sorted((set(krw_markets("https://api.bithumb.com")) | {r["coin"] for r in before}) - {"USDT"}),
@@ -212,10 +197,7 @@ def main() -> None:
         key = (source, sym)
         if key not in glob_cache:
             try:
-                if source == "coingecko":
-                    glob_cache[key] = coingecko(gecko[sym]) if sym in gecko else {}
-                else:
-                    glob_cache[key] = fetchers[source](sym)
+                glob_cache[key] = fetchers[source](sym)
             except (urllib.error.HTTPError, urllib.error.URLError, ValueError, KeyError):
                 glob_cache[key] = {}
         return glob_cache[key]
