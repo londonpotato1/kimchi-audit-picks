@@ -3,7 +3,7 @@
 # requires-python = ">=3.13"
 # dependencies = []
 # ///
-"""정기실사 입출금 중지 구간 김프 실측 — 빗썸·업비트 각각. `--event=0630`(기본) / `--event=0331`.
+"""정기실사 입출금 중지 구간 김프 실측 — 빗썸·업비트 각각. `--event=0630`(기본) / `--event=0331` / `--event=0930`.
 
 김프(%) = 국내 KRW 1h 종가 / (해외 USDT 1h 종가 × 같은 거래소 USDT/KRW 1h 종가) × 100 − 100
 - 종가 기준 (저유동 알트의 순간 윅 제외), 중지 구간만 측정 (재개 후 제외)
@@ -13,6 +13,7 @@
   이때 CoinGecko 로 우회하지 않음 — 국내가가 섞인 평균이라 Δ 가 조작됨 (TAIKO: CG +14.8%p vs Gate −0.3%p).
   CoinGecko 는 거래소 페어가 없거나 해당 구간 데이터가 모자랄 때만.
 - 국내 호가 한 칸이 가격의 2% 초과인 초저가 코인은 김프가 호가단위 허수라 제외.
+- pre_delta = 중지 직전 3시간 최대 김프 − 같은 기준선 (중지 직전에 튀고 중지와 함께 꺼지는 펌핑 포착).
 - Δ = 중지 구간 최대 김프 − 직전 24h 평균 김프. 최대−평균이라 잡음만으로도 양수가 나오므로
   `--control` 로 하루 전 같은 시간대(평상시)를 같은 방식으로 재서 비교한다.
 입력: data_D_{event}.json (그 실사 직전 대시보드 스냅샷 — 측정 대상 종목)
@@ -32,11 +33,14 @@ DIR = Path(__file__).resolve().parent
 KST = dt.timezone(dt.timedelta(hours=9))
 H = 3600
 # 캔들 시작 시각 기준 [start, end). 업비트는 "순차 재개" 시작 시각을 몰라 재개 완료 시각보다
-# 한 시간 이상 앞 정시에서 자름 (06:55 완료 → 05:00, 05:15 완료 → 04:00).
+# 한 시간 이상 앞 정시에서 자름 (06:55 완료 → 05:00, 05:15 → 04:00, 04:58 → 03:00).
 AUDITS = {
     # 빗썸 공지 1653832 17:00~03:00 · 업비트 공지 6320 20:00~08:00 예정, 06:55 재개 완료
     "0630": {"bithumb": (dt.datetime(2026, 6, 30, 17, tzinfo=KST), dt.datetime(2026, 7, 1, 3, tzinfo=KST)),
              "upbit": (dt.datetime(2026, 6, 30, 20, tzinfo=KST), dt.datetime(2026, 7, 1, 5, tzinfo=KST))},
+    # 빗썸 공지 1654966 17:00~03:00 (10/1 03:00 완료) · 업비트 공지 6610 20:00~08:00 예정, 04:58 재개 완료
+    "0930": {"bithumb": (dt.datetime(2026, 9, 30, 17, tzinfo=KST), dt.datetime(2026, 10, 1, 3, tzinfo=KST)),
+             "upbit": (dt.datetime(2026, 9, 30, 20, tzinfo=KST), dt.datetime(2026, 10, 1, 3, tzinfo=KST))},
     # 빗썸 공지 1652422 17:00~03:00 · 업비트 공지 6090 20:00~08:00 예정, 05:15 재개 완료
     "0331": {"bithumb": (dt.datetime(2026, 3, 31, 17, tzinfo=KST), dt.datetime(2026, 4, 1, 3, tzinfo=KST)),
              "upbit": (dt.datetime(2026, 3, 31, 20, tzinfo=KST), dt.datetime(2026, 4, 1, 4, tzinfo=KST))},
@@ -53,6 +57,7 @@ G_FROM = int(min(s for s, _ in EVENTS.values()).timestamp()) - 24 * H
 G_TO = int(max(e for _, e in EVENTS.values()).timestamp()) + H
 MAX_BASELINE = 15.0
 MAX_TICK = 0.02
+PRE_HOURS = 3
 
 
 def domestic(exchange: str, sym: str) -> dict[int, float]:
@@ -107,11 +112,16 @@ def measure(exchange: str, dom: dict[int, float], fx: dict[int, float], glob: di
     if abs(baseline) > MAX_BASELINE:
         return baseline
     peak_h, peak = max(win, key=lambda x: x[1])
+    # 실사 직전 3시간 — 중지 직전에 튀고 중지와 함께 꺼지는 펌핑 (O 9/30 16시 +16.0%p)
+    pre = [(h, p) for h, p in prem.items() if start - PRE_HOURS * H <= h < start]
+    pre_h, pre_p = max(pre, key=lambda x: x[1]) if pre else (None, None)
     return {
         "baseline": round(baseline, 2), "max_prem": round(peak, 2),
         "mean_prem": round(sum(p for _, p in win) / len(win), 2),
         "delta": round(peak - baseline, 2),
         "max_time": dt.datetime.fromtimestamp(peak_h, KST).strftime("%m-%d %H시"),
+        "pre_delta": round(pre_p - baseline, 2) if pre else None,
+        "pre_time": dt.datetime.fromtimestamp(pre_h, KST).strftime("%m-%d %H시") if pre else None,
         "n_base": len(base), "n_win": len(win), "dom_win_hours": dom_win,
     }
 

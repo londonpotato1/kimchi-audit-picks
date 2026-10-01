@@ -95,6 +95,25 @@ def test_embed_replaces_once_and_escapes_script_breakout() -> None:
         b.embed("<script>const D=[];</script>", [row])
 
 
+def test_results_only_keeps_pre_audit_snapshot_and_pre_keys_only_for_0930(monkeypatch) -> None:
+    row = b.empty_row(universe_entry()) | {"mc": 123.0, "internal_value": 456}
+    meas = {("0930", "bithumb", "ABC"): {"delta": 9.0, "max_prem": 10.0, "max_time": "t", "source": "gate",
+                                         "pre_delta": 16.0, "pre_time": "09-30 16시"}}
+    monkeypatch.setattr(b, "load_measurements", lambda: meas)
+
+    [row] = b.add_results([row])
+
+    assert row["mc"] == 123.0 and row["internal_value"] == 456  # 실사 전 스냅샷 그대로
+    assert row["a0930_bt"] == 9.0 and row["a0930_bt_pre"] == 16.0 and row["a0930_up"] is None
+    assert not any(k.endswith("_pre") for k in row if not k.startswith("a0930_"))
+
+
+def test_missing_measurement_file_stops_build(monkeypatch, tmp_path) -> None:
+    monkeypatch.setattr(b, "DIR", tmp_path)  # 측정 파일 없음 → 기존 결과가 빈칸으로 덮이지 않게 중단
+    with pytest.raises(SystemExit, match="audit_0630_premium.json"):
+        b.load_measurements()
+
+
 def hourly(start: dt.datetime, hours: int, value: float) -> dict[int, float]:
     base = int(start.timestamp())
     return {base + i * 3600: value for i in range(hours)}
@@ -115,6 +134,21 @@ def test_measure_delta_uses_only_freeze_window_and_24h_baseline() -> None:
     assert r is not None
     assert r["baseline"] == 0.0 and r["max_prem"] == 10.0 and r["delta"] == 10.0
     assert r["n_win"] == 10
+
+
+def test_measure_reports_pre_freeze_spike_separately() -> None:
+    start, _ = m.EVENTS["bithumb"]
+    pre = start - dt.timedelta(hours=24)
+    fx = hourly(pre, 40, 1400.0)
+    glob = hourly(pre, 40, 1.0)
+    dom = hourly(pre, 40, 1400.0)
+    dom[int(start.timestamp()) - 3600] = 1400.0 * 1.2  # 중지 1시간 전 +20% (O 9/30 16시 패턴)
+
+    r = m.measure("bithumb", dom, fx, glob)
+
+    assert r is not None and r["delta"] < 1  # 중지 구간에는 펌핑 없음
+    assert r["pre_delta"] == round(20 - 20 / 24, 2)
+    assert r["pre_time"].endswith(f"{(start - dt.timedelta(hours=1)).hour:02d}시")
 
 
 def test_measure_rejects_mismatched_overseas_pair_and_sparse_series() -> None:
@@ -188,9 +222,10 @@ def test_index_audit_tab_is_default_and_wired() -> None:
         assert upbit_sym not in by
         assert by[bithumb_sym]["on_upbit"] and by[bithumb_sym]["upbit_symbol"] == upbit_sym
     head = html[html.index("<thead>"):html.index("</thead>")]
-    assert head.count('class="r aud"') == 4  # 업비트비중 · 3/31 빗썸Δ · 6/30 빗썸Δ · 6/30 업비트Δ
+    assert head.count('class="r aud"') == 6  # 업비트비중 · 3/31 빗썸Δ · 6/30 빗썸·업비트Δ · 9/30 빗썸·업비트Δ
     assert head.count('class="r nonaud"') == 2  # 3/31 월간 최대김프(봇) · 5/28 입출막 → 9/30 탭에서 숨김
     assert html.count("deltaCell(r.a0630_") == 2 and html.count("deltaCell(r.a0331_") == 1
+    assert html.count("deltaCell(r.a0930_") == 2
     assert "'<td class=\"r aud\">'+up+'</td>'" in html
     # 9/30 탭 기본 = 시총 작은 순 (3/31·6/30 백테스트에서 가장 안정)
     assert "if(isAudit)document.getElementById('fSort').value='mc';" in html
@@ -208,5 +243,7 @@ def test_delta_cell_escapes_tooltip_and_handles_missing() -> None:
         "assert.ok(deltaCell(null,null,null,null,'#000').includes('—'));"
         "const h=deltaCell(3.25,5,'<b>',\"x\\\"><img\",'#000');"
         "assert.ok(h.includes('+3.3%p'));assert.equal(h.includes('<img'),false);assert.equal(h.includes('<b>'),false);"
+        "assert.ok(deltaCell(-1.3,-0.7,'x','gate','#000',16.03,'09-30 16시').includes('⚡직전+16'));"
+        "assert.equal(deltaCell(1,2,'x','gate','#000',2,'t').includes('⚡'),false);"
     )
     subprocess.run(["node", "-e", script], check=True, capture_output=True, text=True)
