@@ -16,8 +16,11 @@
 - pre_delta = 중지 직전 3시간 최대 김프 − 같은 기준선 (중지 직전에 튀고 중지와 함께 꺼지는 펌핑 포착).
 - Δ = 중지 구간 최대 김프 − 직전 24h 평균 김프. 최대−평균이라 잡음만으로도 양수가 나오므로
   `--control` 로 하루 전 같은 시간대(평상시)를 같은 방식으로 재서 비교한다.
+- `--futures`: 해외 기준가를 USDS 무기한(바이낸스 → 바이비트 → Gate)으로 바꿔 역현선을 잰다.
+  rev_delta = 중지 구간 최저 (국내 현물 − 해외 무기한) − 같은 기준선. 음수일수록 국내가 선물보다 싸게 벌어짐
+  (IN 6/30 업비트, WLD·PROS·SOON 9/30 — 김프 Δ 는 최대만 봐서 안 잡힘).
 입력: data_D_{event}.json (그 실사 직전 대시보드 스냅샷 — 측정 대상 종목)
-출력: audit_{event}_premium.json / audit_{event}_control.json (성공분 보존, 재실행 시 실패분만 재측정)
+출력: audit_{event}_{futures_}premium.json / _control.json (성공분 보존, 재실행 시 실패분만 재측정)
 """
 import datetime as dt
 import json
@@ -50,9 +53,14 @@ if "--event" in sys.argv:  # 띄어 쓰면 조용히 기본값(0630)으로 돌�
 EVENT = next((a.split("=", 1)[1] for a in sys.argv if a.startswith("--event=")), "0630")
 AUDIT = AUDITS[EVENT]
 CONTROL = "--control" in sys.argv
+FUTURES = "--futures" in sys.argv
 SHIFT = dt.timedelta(hours=24 if CONTROL else 0)
 EVENTS = {ex: (s - SHIFT, e - SHIFT) for ex, (s, e) in AUDIT.items()}
-OUT = DIR / f"audit_{EVENT}_{'control' if CONTROL else 'premium'}.json"
+OUT = DIR / f"audit_{EVENT}_{'futures_' if FUTURES else ''}{'control' if CONTROL else 'premium'}.json"
+# 역현선은 15분봉 — 1시간 안에 회복하는 저점을 1시간 종가가 놓침 (9/30 PROS 업비트 1h −2.2%p vs 15m −5.6%p)
+STEP_MIN = 15 if FUTURES else 60
+TIME_FMT = "%m-%d %H:%M" if FUTURES else "%m-%d %H시"
+PERP_ALIAS = {"PROS": "PHAROS"}  # 바이낸스·바이비트 무기한만 PHAROSUSDT (바이낸스 현물 PROS = 옛 Prosper, 2026-09-30 실측)
 G_FROM = int(min(s for s, _ in EVENTS.values()).timestamp()) - 24 * H
 G_TO = int(max(e for _, e in EVENTS.values()).timestamp()) + H
 MAX_BASELINE = 15.0
@@ -64,9 +72,9 @@ def domestic(exchange: str, sym: str) -> dict[int, float]:
     """캔들 시작(UTC epoch) → 종가. 거래 없는 시간은 캔들 자체가 없음."""
     end = EVENTS[exchange][1]
     if exchange == "bithumb":  # to = KST 문자열, 해당 시각 캔들 제외
-        url = f"https://api.bithumb.com/v1/candles/minutes/60?market=KRW-{sym}&to={quote(end.strftime('%Y-%m-%d %H:%M:%S'))}&count=40"
+        url = f"https://api.bithumb.com/v1/candles/minutes/{STEP_MIN}?market=KRW-{sym}&to={quote(end.strftime('%Y-%m-%d %H:%M:%S'))}&count={40 * 60 // STEP_MIN}"
     else:  # 업비트 to = ISO(+09:00), 해당 시각 이전
-        url = f"https://api.upbit.com/v1/candles/minutes/60?market=KRW-{sym}&to={quote(end.isoformat())}&count=40"
+        url = f"https://api.upbit.com/v1/candles/minutes/{STEP_MIN}?market=KRW-{sym}&to={quote(end.isoformat())}&count={40 * 60 // STEP_MIN}"
     rows = get(url)
     time.sleep(0.15)
     if not isinstance(rows, list):  # 빗썸 상장폐지 마켓은 HTTP 200 + {"error": {"name": 404}}
@@ -84,6 +92,33 @@ def binance(sym: str) -> dict[int, float]:
 def gate(sym: str) -> dict[int, float]:
     kl = get(f"https://api.gateio.ws/api/v4/spot/candlesticks?currency_pair={sym}_USDT&interval=1h&from={G_FROM}&to={G_TO}")
     return {int(k[0]): float(k[2]) for k in kl}
+
+
+def binance_perp(sym: str) -> dict[int, float]:
+    for prefix, factor in (("", 1), ("1000", 1000)):  # 1000PEPE 처럼 1000개 묶음 티커는 가격 ÷1000
+        try:
+            kl = get(f"https://fapi.binance.com/fapi/v1/klines?symbol={prefix}{PERP_ALIAS.get(sym, sym)}USDT"
+                     f"&interval=15m&startTime={G_FROM * 1000}&endTime={G_TO * 1000}&limit=200")
+        except urllib.error.HTTPError as e:
+            if e.code == 400:  # 없는 심볼
+                continue
+            raise
+        return {int(k[0]) // 1000: float(k[4]) / factor for k in kl}
+    return {}
+
+
+def bybit_perp(sym: str) -> dict[int, float]:
+    for prefix, factor in (("", 1), ("1000", 1000)):
+        j = get(f"https://api.bybit.com/v5/market/kline?category=linear&symbol={prefix}{PERP_ALIAS.get(sym, sym)}USDT"
+                f"&interval=15&start={G_FROM * 1000}&end={G_TO * 1000}&limit=200")
+        if j.get("retCode") == 0 and j["result"]["list"]:  # 없는 심볼은 HTTP 200 + retCode≠0
+            return {int(k[0]) // 1000: float(k[4]) / factor for k in j["result"]["list"]}
+    return {}
+
+
+def gate_perp(sym: str) -> dict[int, float]:
+    kl = get(f"https://api.gateio.ws/api/v4/futures/usdt/candlesticks?contract={sym}_USDT&interval=15m&from={G_FROM}&to={G_TO}")
+    return {int(k["t"]): float(k["c"]) for k in kl}
 
 
 def coingecko(gid: str) -> dict[int, float]:
@@ -112,6 +147,7 @@ def measure(exchange: str, dom: dict[int, float], fx: dict[int, float], glob: di
     if abs(baseline) > MAX_BASELINE:
         return baseline
     peak_h, peak = max(win, key=lambda x: x[1])
+    low_h, low = min(win, key=lambda x: x[1])
     # 실사 직전 3시간 — 중지 직전에 튀고 중지와 함께 꺼지는 펌핑 (O 9/30 16시 +16.0%p)
     pre = [(h, p) for h, p in prem.items() if start - PRE_HOURS * H <= h < start]
     pre_h, pre_p = max(pre, key=lambda x: x[1]) if pre else (None, None)
@@ -119,9 +155,11 @@ def measure(exchange: str, dom: dict[int, float], fx: dict[int, float], glob: di
         "baseline": round(baseline, 2), "max_prem": round(peak, 2),
         "mean_prem": round(sum(p for _, p in win) / len(win), 2),
         "delta": round(peak - baseline, 2),
-        "max_time": dt.datetime.fromtimestamp(peak_h, KST).strftime("%m-%d %H시"),
+        "max_time": dt.datetime.fromtimestamp(peak_h, KST).strftime(TIME_FMT),
         "pre_delta": round(pre_p - baseline, 2) if pre else None,
-        "pre_time": dt.datetime.fromtimestamp(pre_h, KST).strftime("%m-%d %H시") if pre else None,
+        "pre_time": dt.datetime.fromtimestamp(pre_h, KST).strftime(TIME_FMT) if pre else None,
+        "min_prem": round(low, 2), "rev_delta": round(low - baseline, 2),
+        "min_time": dt.datetime.fromtimestamp(low_h, KST).strftime(TIME_FMT),
         "n_base": len(base), "n_win": len(win), "dom_win_hours": dom_win,
     }
 
@@ -154,7 +192,12 @@ def main() -> None:
     universe_file = DIR / "audit0930_universe.json"
     if universe_file.exists():  # 0단계 가격 대조 통과 ID 우선
         gecko.update({u["coin"]: u["gecko_id"] for u in json.loads(universe_file.read_text()) if u["gecko_id"]})
-    sources = ("binance", "gate") if "--no-coingecko" in sys.argv else ("binance", "gate", "coingecko")
+    if FUTURES:
+        sources = ("binance_perp", "bybit_perp", "gate_perp")
+    else:
+        sources = ("binance", "gate") if "--no-coingecko" in sys.argv else ("binance", "gate", "coingecko")
+    fetchers = {"binance": binance, "gate": gate, "binance_perp": binance_perp, "bybit_perp": bybit_perp,
+                "gate_perp": gate_perp}
     targets = {
         "bithumb": sorted((set(krw_markets("https://api.bithumb.com")) | {r["coin"] for r in before}) - {"USDT"}),
         "upbit": sorted(set(krw_markets("https://api.upbit.com")) - {"USDT"}),
@@ -169,12 +212,10 @@ def main() -> None:
         key = (source, sym)
         if key not in glob_cache:
             try:
-                if source == "binance":
-                    glob_cache[key] = binance(sym)
-                elif source == "gate":
-                    glob_cache[key] = gate(sym)
-                else:
+                if source == "coingecko":
                     glob_cache[key] = coingecko(gecko[sym]) if sym in gecko else {}
+                else:
+                    glob_cache[key] = fetchers[source](sym)
             except (urllib.error.HTTPError, urllib.error.URLError, ValueError, KeyError):
                 glob_cache[key] = {}
         return glob_cache[key]
@@ -202,14 +243,18 @@ def main() -> None:
                 print(f"  {i}/{len(todo)}")
     OUT.write_text(json.dumps(results, ensure_ascii=False, indent=1))
     for ex in EVENTS:
-        ok = sorted((r for r in results if r["exchange"] == ex and "delta" in r), key=lambda r: -r["delta"])
+        ok = sorted((r for r in results if r["exchange"] == ex and "delta" in r),
+                    key=lambda r: r["rev_delta"] if FUTURES else -r["delta"])
         src: dict[str, int] = {}
         for r in ok:
             src[r["source"]] = src.get(r["source"], 0) + 1
         label = f"{EVENT} " + ("평상시 대조(하루 전)" if CONTROL else "실사")
-        print(f"\n=== {ex} {label} Δ김프 상위 15 (성공 {len(ok)}/{len(targets[ex])}, 소스 {src}) ===")
+        print(f"\n=== {ex} {label} {'역현선' if FUTURES else 'Δ김프'} 상위 15 (성공 {len(ok)}/{len(targets[ex])}, 소스 {src}) ===")
         for r in ok[:15]:
-            print(f"  {r['coin']:8} base {r['baseline']:6.2f}  max {r['max_prem']:6.2f} @{r['max_time']}  Δ {r['delta']:6.2f}  [{r['source']}]")
+            if FUTURES:
+                print(f"  {r['coin']:8} base {r['baseline']:6.2f}  min {r['min_prem']:6.2f} @{r['min_time']}  역Δ {r['rev_delta']:6.2f}  [{r['source']}]")
+            else:
+                print(f"  {r['coin']:8} base {r['baseline']:6.2f}  max {r['max_prem']:6.2f} @{r['max_time']}  Δ {r['delta']:6.2f}  [{r['source']}]")
 
 
 if __name__ == "__main__":

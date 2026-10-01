@@ -6,7 +6,8 @@
 """9/30 정기실사 탭 데이터 (D_AUDIT0930) — 빗썸 KRW ∪ 업비트 KRW 전수.
 
 입력: audit0930_universe.json (가격 대조 검증된 CoinGecko ID·시총·유통량),
-      upbit_report_0701.json (업비트 7/1 실사보고서 고객 위탁량), audit_{0630,0331,0930}_premium.json (실사 실측)
+      upbit_report_0701.json (업비트 7/1 실사보고서 고객 위탁량), audit_{0630,0331,0930}_premium.json (실사 실측),
+      audit_{0630,0930}_futures_premium.json (해외 무기한 기준 역현선)
 `--results-only`: data_audit0930.json(9/29 실사 전 스냅샷)에 실사 결과 컬럼만 갱신
 라이브: 빗썸 gw 내부지표 5종 (build_bnb28 과 같은 경로·공식, base.apply_live_metric 재사용)
 이력: 점수·갭·과거 실사(25.9/30, 12/31, 3/31)는 6/30 탭 D(없으면 data_D_0630) 에서 승계
@@ -40,7 +41,13 @@ def empty_row(u: dict) -> Row:
         "a0630_up": None, "a0630_up_max": None, "a0630_up_time": None, "a0630_up_src": None,
         "a0331_bt": None, "a0331_bt_max": None, "a0331_bt_time": None, "a0331_bt_src": None,
         "a0930_bt": None, "a0930_bt_max": None, "a0930_bt_time": None, "a0930_bt_src": None,
+        "a0930_bt_pre": None, "a0930_bt_pre_time": None,
         "a0930_up": None, "a0930_up_max": None, "a0930_up_time": None, "a0930_up_src": None,
+        "a0930_up_pre": None, "a0930_up_pre_time": None,
+        "rev0630_bt": None, "rev0630_bt_min": None, "rev0630_bt_time": None, "rev0630_bt_src": None,
+        "rev0630_up": None, "rev0630_up_min": None, "rev0630_up_time": None, "rev0630_up_src": None,
+        "rev0930_bt": None, "rev0930_bt_min": None, "rev0930_bt_time": None, "rev0930_bt_src": None,
+        "rev0930_up": None, "rev0930_up_min": None, "rev0930_up_time": None, "rev0930_up_src": None,
         "upbit_qty": None, "upbit_ratio": None, "upbit_value": None,
         "upbit_symbol": u["coin"] if u["on_upbit"] else None,
         "on_bithumb": u["on_bithumb"], "on_upbit": u["on_upbit"], "stable": u["stable"],
@@ -93,23 +100,32 @@ def fill_bithumb(row: Row, u: dict, coin_type: str, ticker: dict | None, fx: flo
     })
 
 
-RESULTS = ((("0630", "bithumb"), "a0630_bt"), (("0630", "upbit"), "a0630_up"), (("0331", "bithumb"), "a0331_bt"),
-           (("0930", "bithumb"), "a0930_bt"), (("0930", "upbit"), "a0930_up"))
+# (실사, 측정 파일, 거래소, 컬럼) — futures_premium = 해외 무기한 기준 (역현선)
+RESULTS = (("0630", "premium", "bithumb", "a0630_bt"), ("0630", "premium", "upbit", "a0630_up"),
+           ("0331", "premium", "bithumb", "a0331_bt"),
+           ("0930", "premium", "bithumb", "a0930_bt"), ("0930", "premium", "upbit", "a0930_up"),
+           ("0630", "futures_premium", "bithumb", "rev0630_bt"), ("0630", "futures_premium", "upbit", "rev0630_up"),
+           ("0930", "futures_premium", "bithumb", "rev0930_bt"), ("0930", "futures_premium", "upbit", "rev0930_up"))
 
 
 def load_measurements() -> dict:
     meas = {}
-    for event in ("0630", "0331", "0930"):
-        path = DIR / f"audit_{event}_premium.json"
+    for event, kind in sorted({(event, kind) for event, kind, _, _ in RESULTS}):
+        path = DIR / f"audit_{event}_{kind}.json"
         if not path.exists():  # 없으면 기존 결과 컬럼이 조용히 빈칸으로 덮여 공개됨
-            raise SystemExit(f"{path.name} 없음 — measure_audit0630.py --event={event} 먼저")
-        meas.update({(event, r["exchange"], r["coin"]): r for r in json.loads(path.read_text()) if "delta" in r})
+            flag = " --futures" if kind == "futures_premium" else ""
+            raise SystemExit(f"{path.name} 없음 — measure_audit0630.py --event={event}{flag} 먼저")
+        meas.update({(event, kind, r["exchange"], r["coin"]): r for r in json.loads(path.read_text()) if "delta" in r})
     return meas
 
 
 def fill_results(row: Row, meas: dict, coin: str, up_sym: str | None) -> None:
-    for (event, ex), prefix in RESULTS:
-        m = meas.get((event, ex, coin if ex == "bithumb" else up_sym))
+    for event, kind, ex, prefix in RESULTS:
+        m = meas.get((event, kind, ex, coin if ex == "bithumb" else up_sym))
+        if kind == "futures_premium":  # 역현선 = 중지 중 국내 현물이 해외 무기한보다 싸진 폭 (평소 대비, 음수)
+            row.update({prefix: m and m["rev_delta"], f"{prefix}_min": m and m["min_prem"],
+                        f"{prefix}_time": m and m["min_time"], f"{prefix}_src": m and m["source"]})
+            continue
         row.update({prefix: m and m["delta"], f"{prefix}_max": m and m["max_prem"],
                     f"{prefix}_time": m and m["max_time"], f"{prefix}_src": m and m["source"]})
         if event == "0930":  # 직전 3시간 지표는 9/30 측정부터 있음
